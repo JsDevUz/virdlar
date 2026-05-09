@@ -10,7 +10,7 @@ export function startScheduler(bot) {
       try {
         await bot.telegram.sendMessage(
           user.telegram_id,
-          '⏰ Bugungi virdlarni kiritishga 1 soat qoldi!'
+          '⏰ Bugungi virdlarni kiritishga ohirgi muhlat tugashiga 1 soat qoldi!'
         );
       } catch { /* user may have blocked bot */ }
     }
@@ -29,7 +29,7 @@ export function startScheduler(bot) {
   }, { timezone: 'Asia/Tashkent' });
 }
 
-function buildReport(date) {
+export function buildReport(date) {
   const [y, m, d] = date.split('-');
   const header = `📅 ${d}.${m}.${y}\n\n${VIRDLAR.map(v => v.label).join('\n')}\n\n`;
 
@@ -41,7 +41,7 @@ function buildReport(date) {
     const emojis = VIRDLAR
       .filter(v => doneKeys.has(v.key))
       .map(v => v.label.split(' ')[0])
-      .join(',');
+      .join(' • ');
     return `${user.first_name} — ${emojis}`;
   }).filter(Boolean);
 

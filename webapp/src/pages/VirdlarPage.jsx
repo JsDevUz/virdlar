@@ -21,9 +21,11 @@ function isLocked() {
 
 export function VirdlarPage({ tgUser, isAdmin, onAdminClick }) {
   const today = getTodayStr();
-  const locked = isLocked();
+  const locked = isLocked() || import.meta.env.VITE_FORCE_LOCKED === 'true';
   const [records, setRecords] = useState([]);
+  const [loadingKey, setLoadingKey] = useState(null);
   const [modal, setModal] = useState(null);
+  const [toast, setToast] = useState(false);
 
   useEffect(() => {
     api.getVirdlar(today).then(setRecords).catch(console.error);
@@ -31,18 +33,28 @@ export function VirdlarPage({ tgUser, isAdmin, onAdminClick }) {
 
   const recordMap = Object.fromEntries(records.map(r => [r.vird_key, r]));
 
+  const showLockedToast = () => {
+    setToast(true);
+    setTimeout(() => setToast(false), 2500);
+  };
+
   const handleToggle = async (key, newStatus) => {
-    const updated = await api.postVird({
-      vird_key: key,
-      date: today,
-      status: newStatus,
-      comment: recordMap[key]?.comment || ''
-    });
-    setRecords(prev => {
-      const idx = prev.findIndex(r => r.vird_key === key);
-      if (idx >= 0) return prev.map(r => r.vird_key === key ? updated : r);
-      return [...prev, updated];
-    });
+    setLoadingKey(key);
+    try {
+      const updated = await api.postVird({
+        vird_key: key,
+        date: today,
+        status: newStatus,
+        comment: recordMap[key]?.comment || ''
+      });
+      setRecords(prev => {
+        const idx = prev.findIndex(r => r.vird_key === key);
+        if (idx >= 0) return prev.map(r => r.vird_key === key ? updated : r);
+        return [...prev, updated];
+      });
+    } finally {
+      setLoadingKey(null);
+    }
   };
 
   const handleSaveComment = async (key, comment) => {
@@ -81,12 +93,17 @@ export function VirdlarPage({ tgUser, isAdmin, onAdminClick }) {
             key={vird.key}
             vird={vird}
             record={recordMap[vird.key]}
-            onToggle={handleToggle}
+            onToggle={locked ? showLockedToast : handleToggle}
             onComment={(key, comment) => setModal({ key, comment })}
             disabled={locked}
+            loading={loadingKey === vird.key}
           />
         ))}
       </div>
+
+      {toast && (
+        <div className="toast">🔒 Kechikdingiz! Virdlar yopilgan</div>
+      )}
 
       {modal && (
         <CommentModal

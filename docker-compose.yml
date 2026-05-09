@@ -9,8 +9,9 @@ services:
       - ./data:/app/data
     restart: unless-stopped
     networks:
-      - caddy_net
+      - public
 
 networks:
-  caddy_net:
+  public:
     external: true
+    name: jamm-deploy_public

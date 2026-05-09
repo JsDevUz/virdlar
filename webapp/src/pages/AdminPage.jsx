@@ -1,14 +1,67 @@
 import { useState, useEffect } from 'react';
-import { UsersList } from '../components/UsersList.jsx';
 import { api } from '../api.js';
 import { VIRDLAR } from '../constants.js';
+
+function UserRow({ user, filter }) {
+  const [open, setOpen] = useState(false);
+  const [virdlar, setVirdlar] = useState([]);
+  const [commentModal, setCommentModal] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const date = `${filter.year}-${String(filter.month).padStart(2,'0')}-${String(filter.day).padStart(2,'0')}`;
+    api.getAdminVirdlar({ user_id: user.id, date }).then(setVirdlar);
+  }, [open, filter, user.id]);
+
+  const recordMap = Object.fromEntries(virdlar.map(r => [r.vird_key, r]));
+  const doneCount = virdlar.filter(r => r.status === 'done').length;
+
+  return (
+    <>
+      <div className={`user-accordion-row ${open ? 'open' : ''}`} onClick={() => setOpen(o => !o)}>
+        <span className="user-acc-name">{user.first_name}</span>
+        {open && <span className="user-acc-count">{doneCount}/{VIRDLAR.length} ✅</span>}
+        <span className="user-acc-arrow">{open ? '▲' : '▼'}</span>
+      </div>
+
+      {open && (
+        <div className="user-virdlar-panel">
+          {VIRDLAR.map(v => {
+            const rec = recordMap[v.key];
+            return (
+              <div
+                key={v.key}
+                className={`vird-row ${rec?.status === 'done' ? 'done' : rec ? 'not-done' : 'empty'}`}
+                onClick={() => rec?.comment && setCommentModal(rec.comment)}
+                style={{ cursor: rec?.comment ? 'pointer' : 'default' }}
+              >
+                <span className="vird-row-label">{v.label}</span>
+                <span className="vird-row-status">
+                  {rec?.comment ? '💬 ' : ''}
+                  {rec?.status === 'done' ? '✅' : rec ? '—' : ''}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {commentModal && (
+        <div className="modal-overlay" onClick={() => setCommentModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>Izoh</h3>
+            <p>{commentModal}</p>
+            <button onClick={() => setCommentModal(null)}>Yopish</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 export function AdminPage({ onBack }) {
   const now = new Date();
   const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [virdlar, setVirdlar] = useState([]);
-  const [commentModal, setCommentModal] = useState(null);
   const [filter, setFilter] = useState({
     year:  now.getFullYear(),
     month: now.getMonth() + 1,
@@ -17,17 +70,9 @@ export function AdminPage({ onBack }) {
 
   useEffect(() => { api.getUsers().then(setUsers); }, []);
 
-  useEffect(() => {
-    if (!selectedUser) return;
-    const date = `${filter.year}-${String(filter.month).padStart(2,'0')}-${String(filter.day).padStart(2,'0')}`;
-    api.getAdminVirdlar({ user_id: selectedUser.id, date }).then(setVirdlar);
-  }, [selectedUser, filter]);
-
   const years  = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const days   = Array.from({ length: 31 }, (_, i) => i + 1);
-
-  const recordMap = Object.fromEntries(virdlar.map(r => [r.vird_key, r]));
 
   return (
     <div className="page admin-page">
@@ -47,49 +92,12 @@ export function AdminPage({ onBack }) {
         </div>
       </header>
 
-      <div className="admin-body">
-        <UsersList users={users} selectedId={selectedUser?.id} onSelect={setSelectedUser} />
-
-        <main className="virdlar-table">
-          {!selectedUser && <p className="hint">Foydalanuvchi tanlang</p>}
-          {selectedUser && (
-            <table>
-              <thead>
-                <tr>
-                  <th>Vird</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {VIRDLAR.map(v => {
-                  const rec = recordMap[v.key];
-                  return (
-                    <tr
-                      key={v.key}
-                      className={rec?.status === 'done' ? 'done' : rec ? 'not-done' : 'empty'}
-                      onClick={() => rec?.comment && setCommentModal(rec.comment)}
-                      style={{ cursor: rec?.comment ? 'pointer' : 'default' }}
-                    >
-                      <td>{v.label}</td>
-                      <td>{rec?.status === 'done' ? '✅' : rec ? '—' : ''}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </main>
+      <div className="accordion-list">
+        {users.length === 0 && <p className="hint">Foydalanuvchilar yo'q</p>}
+        {users.map(u => (
+          <UserRow key={u.id} user={u} filter={filter} />
+        ))}
       </div>
-
-      {commentModal && (
-        <div className="modal-overlay" onClick={() => setCommentModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>Izoh</h3>
-            <p>{commentModal}</p>
-            <button onClick={() => setCommentModal(null)}>Yopish</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

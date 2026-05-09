@@ -14,18 +14,25 @@ initDb();
 
 const app = express();
 app.use(express.json({ limit: '16kb' }));
+app.use((req, _res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 const bot = createBot();
-
-const webhookPath = `/webhook/${process.env.WEBHOOK_SECRET || 'dev'}`;
-app.use(bot.webhookCallback(webhookPath));
 
 app.use('/api/virdlar', requireAuth, buildVirdlarRouter());
 app.use('/api/admin',   requireAuth, requireAdmin, buildAdminRouter());
 
-const webappDist = join(__dirname, '../../webapp/dist');
+// Webhook faqat polling rejimda emas
+if (process.env.USE_POLLING !== 'true') {
+  const webhookPath = `/webhook/${process.env.WEBHOOK_SECRET || 'dev'}`;
+  app.use(bot.webhookCallback(webhookPath));
+}
+
+const webappDist = new URL('../../webapp/dist', import.meta.url).pathname;
 app.use(express.static(webappDist));
-app.get('*', (_req, res) => {
+app.get('*path', (_req, res) => {
   res.sendFile(join(webappDist, 'index.html'));
 });
 
@@ -37,7 +44,7 @@ const server = app.listen(PORT, async () => {
     const { startScheduler } = await import('../bot/scheduler.js');
     if (process.env.USE_POLLING === 'true') {
       console.log('Bot polling mode...');
-      bot.launch();
+      bot.launch().catch(e => console.error('Bot launch error:', e.message));
       startScheduler(bot);
       process.once('SIGINT', () => bot.stop('SIGINT'));
       process.once('SIGTERM', () => bot.stop('SIGTERM'));
