@@ -29,21 +29,33 @@ export function startScheduler(bot) {
   }, { timezone: 'Asia/Tashkent' });
 }
 
-export function buildReport(date) {
+export export function buildReport(date) {
   const [y, m, d] = date.split('-');
   const header = `📅 ${d}.${m}.${y}\n\n${VIRDLAR.map(v => v.label).join('\n')}\n\n`;
 
   const users = getAllUsers();
-  const lines = users.map(user => {
+  const active = [];
+  const lazy = [];
+
+  for (const user of users) {
     const rows = getVirdlarByUserDate(user.id, date);
     const doneKeys = new Set(rows.filter(r => r.status === 'done').map(r => r.vird_key));
-    if (doneKeys.size === 0) return null;
-    const emojis = VIRDLAR
-      .filter(v => doneKeys.has(v.key))
-      .map(v => v.label.split(' ')[0])
-      .join(' • ');
-    return `${user.first_name} — ${emojis}`;
-  }).filter(Boolean);
+    const name = `‪${user.first_name}‬`;
+    if (doneKeys.size === 0) {
+      lazy.push(name);
+    } else {
+      const emojis = VIRDLAR
+        .filter(v => doneKeys.has(v.key))
+        .map(v => v.label.split(' ')[0])
+        .join(' • ');
+      active.push(`${name} — ${emojis}`);
+    }
+  }
 
-  return header + (lines.length ? lines.join('\n') : '_(hech kim kiritmadi)_');
+  let report = header;
+  report += active.length ? active.join('\n') : '_(hech kim kiritmadi)_';
+  if (lazy.length) {
+    report += `\n\n😴 *G'aflat doskasi:*\n${lazy.join('\n')}`;
+  }
+  return report;
 }
