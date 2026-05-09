@@ -2,6 +2,8 @@ import cron from 'node-cron';
 import { getAllUsers, getVirdlarByUserDate, getTodayStr } from '../db/index.js';
 import { VIRDLAR } from '../constants.js';
 
+const LRM = '\u200E';
+
 export function startScheduler(bot) {
   // 22:00 Toshkent — ogohlantirish
   cron.schedule('0 22 * * *', async () => {
@@ -42,13 +44,13 @@ export function buildReport(date) {
     const doneKeys = new Set(rows.filter(r => r.status === 'done').map(r => r.vird_key));
     const name = user.first_name;
     if (doneKeys.size === 0) {
-      lazy.push(`👤 ${name}‎`);
+      lazy.push(`${LRM}👤 ${name}${LRM}`);
     } else {
       const emojis = VIRDLAR
         .filter(v => doneKeys.has(v.key))
         .map(v => v.label.split(' ')[0])
         .join(' • ');
-      active.push(`👤 ${name}‎ — ${emojis}`);
+      active.push(`${LRM}👤 ${name}${LRM} — ${emojis}`);
     }
   }
 
