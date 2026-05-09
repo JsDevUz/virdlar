@@ -44,7 +44,7 @@ export function buildReport(date) {
     const doneKeys = new Set(rows.filter(r => r.status === 'done').map(r => r.vird_key));
     const name = user.first_name;
     if (doneKeys.size === 0) {
-      lazy.push(`${LRM}👤 ${name}${LRM}`);
+      lazy.push(`${LRM} ${name}${LRM}`);
     } else {
       const emojis = VIRDLAR
         .filter(v => doneKeys.has(v.key))
