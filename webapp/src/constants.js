@@ -1,0 +1,14 @@
+export const VIRDLAR = [
+  { key: 'tahajjud', label: '🌃 Таҳажжуд' },
+  { key: 'zuho',     label: '🌄 Зуҳо' },
+  { key: 'zikrlar',  label: '📿 Зикрлар' },
+  { key: 'yasin',    label: '❤️ Ясин' },
+  { key: 'takror',   label: '🔄 Такрор' },
+  { key: 'tavba',    label: '🧎‍♀️ Тавба' },
+  { key: 'mulk',     label: '📖💰 Мулк' },
+  { key: 'duolar',   label: '🤲 Дуолар' },
+  { key: 'oyatlar',  label: '📑 285-286' },
+  { key: 'mutolaa',  label: '📚 Мутолаа' },
+  { key: 'muhosaba', label: '🧠 Муҳосаба' },
+  { key: 'qazo',     label: '⏳ Қазо рўза' },
+];

@@ -1,0 +1,96 @@
+import { useState, useEffect } from 'react';
+import { VirdCard } from '../components/VirdCard.jsx';
+import { CommentModal } from '../components/CommentModal.jsx';
+import { api } from '../api.js';
+import { VIRDLAR } from '../constants.js';
+
+function getTodayStr() {
+  const now = new Date(Date.now() + 5 * 60 * 60 * 1000);
+  return now.toISOString().slice(0, 10);
+}
+
+function isLocked() {
+  const now = new Date(Date.now() + 5 * 60 * 60 * 1000);
+  return now.getHours() >= 23;
+}
+
+export function VirdlarPage({ tgUser, isAdmin, onAdminClick }) {
+  const today = getTodayStr();
+  const locked = isLocked();
+  const [records, setRecords] = useState([]);
+  const [modal, setModal] = useState(null);
+
+  useEffect(() => {
+    api.getVirdlar(today).then(setRecords).catch(console.error);
+  }, [today]);
+
+  const recordMap = Object.fromEntries(records.map(r => [r.vird_key, r]));
+
+  const handleToggle = async (key, newStatus) => {
+    const updated = await api.postVird({
+      vird_key: key,
+      date: today,
+      status: newStatus,
+      comment: recordMap[key]?.comment || ''
+    });
+    setRecords(prev => {
+      const idx = prev.findIndex(r => r.vird_key === key);
+      if (idx >= 0) return prev.map(r => r.vird_key === key ? updated : r);
+      return [...prev, updated];
+    });
+  };
+
+  const handleSaveComment = async (key, comment) => {
+    const updated = await api.postVird({
+      vird_key: key,
+      date: today,
+      status: recordMap[key]?.status || 'done',
+      comment
+    });
+    setRecords(prev => prev.map(r => r.vird_key === key ? updated : r));
+    setModal(null);
+  };
+
+  const [y, m, d] = today.split('-');
+  const dateLabel = `${d}.${m}.${y}`;
+
+  return (
+    <div className="page virdlar-page">
+      <header className="page-header">
+        <div>
+          <div className="date">{dateLabel}</div>
+          <div className="username">{tgUser?.first_name} xonim</div>
+        </div>
+        {isAdmin && (
+          <button className="admin-btn" onClick={onAdminClick}>Admin</button>
+        )}
+      </header>
+
+      {locked && (
+        <div className="locked-banner">🔒 Bugungi virdlar yopildi</div>
+      )}
+
+      <div className="virdlar-grid">
+        {VIRDLAR.map(vird => (
+          <VirdCard
+            key={vird.key}
+            vird={vird}
+            record={recordMap[vird.key]}
+            onToggle={handleToggle}
+            onComment={(key, comment) => setModal({ key, comment })}
+            disabled={locked}
+          />
+        ))}
+      </div>
+
+      {modal && (
+        <CommentModal
+          virdKey={modal.key}
+          initialComment={modal.comment}
+          onSave={handleSaveComment}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </div>
+  );
+}
