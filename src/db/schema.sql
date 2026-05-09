@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS users (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  telegram_id INTEGER UNIQUE NOT NULL,
+  first_name  TEXT NOT NULL,
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS virdlar (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL REFERENCES users(id),
+  vird_key   TEXT NOT NULL,
+  date       TEXT NOT NULL,
+  status     TEXT NOT NULL DEFAULT 'not_done',
+  comment    TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(user_id, vird_key, date)
+);
