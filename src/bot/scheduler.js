@@ -1,0 +1,49 @@
+import cron from 'node-cron';
+import { getAllUsers, getVirdlarByUserDate, getTodayStr } from '../db/index.js';
+import { VIRDLAR } from '../constants.js';
+
+export function startScheduler(bot) {
+  // 22:00 Toshkent (UTC+5 = 17:00 UTC) — ogohlantirish
+  cron.schedule('0 17 * * *', async () => {
+    const users = getAllUsers();
+    for (const user of users) {
+      try {
+        await bot.telegram.sendMessage(
+          user.telegram_id,
+          '⏰ Bugungi virdlarni kiritishga 1 soat qoldi!'
+        );
+      } catch { /* user may have blocked bot */ }
+    }
+  }, { timezone: 'Asia/Tashkent' });
+
+  // 23:10 Toshkent (18:10 UTC) — adminlarga hisobot
+  cron.schedule('10 18 * * *', async () => {
+    const adminIds = (process.env.ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
+    const today = getTodayStr();
+    const report = buildReport(today);
+    for (const adminId of adminIds) {
+      try {
+        await bot.telegram.sendMessage(adminId, report, { parse_mode: 'Markdown' });
+      } catch { /* silent */ }
+    }
+  }, { timezone: 'Asia/Tashkent' });
+}
+
+function buildReport(date) {
+  const [y, m, d] = date.split('-');
+  const header = `📅 ${d}.${m}.${y}\n\n${VIRDLAR.map(v => v.label).join('\n')}\n\n`;
+
+  const users = getAllUsers();
+  const lines = users.map(user => {
+    const rows = getVirdlarByUserDate(user.id, date);
+    const doneKeys = new Set(rows.filter(r => r.status === 'done').map(r => r.vird_key));
+    if (doneKeys.size === 0) return null;
+    const emojis = VIRDLAR
+      .filter(v => doneKeys.has(v.key))
+      .map(v => v.label.split(' ')[0])
+      .join(',');
+    return `${user.first_name} — ${emojis}`;
+  }).filter(Boolean);
+
+  return header + (lines.length ? lines.join('\n') : '_(hech kim kiritmadi)_');
+}
