@@ -3,8 +3,8 @@ import { getAllUsers, getVirdlarByUserDate, getTodayStr } from '../db/index.js';
 import { VIRDLAR } from '../constants.js';
 
 export function startScheduler(bot) {
-  // 22:00 Toshkent (UTC+5 = 17:00 UTC) — ogohlantirish
-  cron.schedule('0 17 * * *', async () => {
+  // 22:00 Toshkent — ogohlantirish
+  cron.schedule('0 22 * * *', async () => {
     const users = getAllUsers();
     for (const user of users) {
       try {
@@ -16,8 +16,8 @@ export function startScheduler(bot) {
     }
   }, { timezone: 'Asia/Tashkent' });
 
-  // 23:10 Toshkent (18:10 UTC) — adminlarga hisobot
-  cron.schedule('10 18 * * *', async () => {
+  // 23:10 Toshkent — adminlarga hisobot
+  cron.schedule('10 23 * * *', async () => {
     const adminIds = (process.env.ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
     const today = getTodayStr();
     const report = buildReport(today);

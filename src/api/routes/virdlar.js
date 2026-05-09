@@ -22,6 +22,9 @@ export function buildVirdlarRouter() {
       return res.status(403).json({ error: 'Bugungi virdlar yopildi' });
     }
     const { vird_key, date, status, comment } = req.body;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: "Noto'g'ri sana formati" });
+    }
     if (!VALID_KEYS.has(vird_key)) {
       return res.status(400).json({ error: "Noto'g'ri vird_key" });
     }

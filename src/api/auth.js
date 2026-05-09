@@ -29,7 +29,7 @@ export function parseInitData(initDataRaw) {
   const params = new URLSearchParams(initDataRaw);
   const userRaw = params.get('user');
   return {
-    user: userRaw ? JSON.parse(userRaw) : null,
+    user: userRaw ? (() => { try { return JSON.parse(userRaw); } catch { return null; } })() : null,
     auth_date: params.get('auth_date'),
   };
 }

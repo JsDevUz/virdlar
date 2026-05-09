@@ -5,13 +5,18 @@ import { api } from '../api.js';
 import { VIRDLAR } from '../constants.js';
 
 function getTodayStr() {
-  const now = new Date(Date.now() + 5 * 60 * 60 * 1000);
-  return now.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tashkent' }).format(new Date());
 }
 
 function isLocked() {
-  const now = new Date(Date.now() + 5 * 60 * 60 * 1000);
-  return now.getHours() >= 23;
+  const hour = Number(
+    new Intl.DateTimeFormat('en', {
+      timeZone: 'Asia/Tashkent',
+      hour: 'numeric',
+      hour12: false,
+    }).format(new Date())
+  );
+  return hour >= 23;
 }
 
 export function VirdlarPage({ tgUser, isAdmin, onAdminClick }) {

@@ -13,7 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 initDb();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '16kb' }));
 
 const bot = createBot();
 
