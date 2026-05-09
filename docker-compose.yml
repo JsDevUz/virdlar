@@ -1,0 +1,16 @@
+services:
+  peshqadam:
+    build:
+      context: .
+      args:
+        VITE_ADMIN_IDS: ${ADMIN_IDS}
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true

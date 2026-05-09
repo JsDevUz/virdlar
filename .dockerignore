@@ -1,0 +1,7 @@
+node_modules
+webapp/node_modules
+data
+.env
+*.log
+.git
+webapp/dist
