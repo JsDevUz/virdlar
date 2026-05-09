@@ -29,7 +29,7 @@ export function startScheduler(bot) {
   }, { timezone: 'Asia/Tashkent' });
 }
 
-export export function buildReport(date) {
+export function buildReport(date) {
   const [y, m, d] = date.split('-');
   const header = `📅 ${d}.${m}.${y}\n\n${VIRDLAR.map(v => v.label).join('\n')}\n\n`;
 
