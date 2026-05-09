@@ -24,9 +24,10 @@ const bot = createBot();
 app.use('/api/virdlar', requireAuth, buildVirdlarRouter());
 app.use('/api/admin',   requireAuth, requireAdmin, buildAdminRouter());
 
+const webhookPath = `/webhook/${process.env.WEBHOOK_SECRET || 'dev'}`;
+
 // Webhook faqat polling rejimda emas
 if (process.env.USE_POLLING !== 'true') {
-  const webhookPath = `/webhook/${process.env.WEBHOOK_SECRET || 'dev'}`;
   app.use(bot.webhookCallback(webhookPath));
 }
 
