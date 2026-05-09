@@ -60,7 +60,7 @@ export function buildReport(date) {
         .filter(v => doneKeys.has(v.key))
         .map(v => v.label.split(' ')[0])
         .join(' • ');
-      active.push(`${LRM}👤 ${name}${LRM} — ${emojis}`);
+      active.push(`${LRM} ${name}${LRM} — ${emojis}`);
     }
   }
 
