@@ -32,14 +32,21 @@ app.get('*', (_req, res) => {
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, async () => {
   console.log(`Server running on :${PORT}`);
-  if (process.env.NODE_ENV !== 'test' && process.env.BOT_TOKEN && process.env.WEBHOOK_SECRET) {
-    try {
-      await bot.telegram.setWebhook(`${process.env.WEBAPP_URL}${webhookPath}`);
-      const { startScheduler } = await import('../bot/scheduler.js');
+  if (process.env.NODE_ENV === 'test') return;
+  try {
+    const { startScheduler } = await import('../bot/scheduler.js');
+    if (process.env.USE_POLLING === 'true') {
+      console.log('Bot polling mode...');
+      bot.launch();
       startScheduler(bot);
-    } catch (e) {
-      console.error('Bot setup error:', e.message);
+      process.once('SIGINT', () => bot.stop('SIGINT'));
+      process.once('SIGTERM', () => bot.stop('SIGTERM'));
+    } else if (process.env.BOT_TOKEN && process.env.WEBHOOK_SECRET) {
+      await bot.telegram.setWebhook(`${process.env.WEBAPP_URL}${webhookPath}`);
+      startScheduler(bot);
     }
+  } catch (e) {
+    console.error('Bot setup error:', e.message);
   }
 });
 

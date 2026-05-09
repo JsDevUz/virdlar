@@ -35,6 +35,14 @@ export function parseInitData(initDataRaw) {
 }
 
 export function requireAuth(req, res, next) {
+  // Dev bypass: DEV_USER_ID=123 qo'yilsa auth o'tkazib yuboriladi
+  if (process.env.DEV_USER_ID) {
+    req.telegramUser = {
+      id: Number(process.env.DEV_USER_ID),
+      first_name: process.env.DEV_USER_NAME || 'DevUser',
+    };
+    return next();
+  }
   const initData = req.headers['x-init-data'] || req.query.initData;
   if (!validateInitData(initData, process.env.BOT_TOKEN)) {
     return res.status(401).json({ error: 'Unauthorized' });
