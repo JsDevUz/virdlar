@@ -42,13 +42,13 @@ export function buildReport(date) {
     const doneKeys = new Set(rows.filter(r => r.status === 'done').map(r => r.vird_key));
     const name = user.first_name;
     if (doneKeys.size === 0) {
-      lazy.push(`👤 ${name}`);
+      lazy.push(`👤 [${name}]`);
     } else {
       const emojis = VIRDLAR
         .filter(v => doneKeys.has(v.key))
         .map(v => v.label.split(' ')[0])
         .join(' • ');
-      active.push(`👤 ${name} — ${emojis}`);
+      active.push(`👤 [${name}] — ${emojis}`);
     }
   }
 
