@@ -4,6 +4,15 @@ import { VIRDLAR } from '../constants.js';
 
 const LRM = '\u200E';
 
+function getReportExcludedTelegramIds() {
+  return new Set(
+    (process.env.REPORT_EXCLUDED_TELEGRAM_IDS || '')
+      .split(',')
+      .map(Number)
+      .filter(Boolean)
+  );
+}
+
 export function startScheduler(bot) {
   // 22:00 Toshkent — ogohlantirish
   cron.schedule('0 22 * * *', async () => {
@@ -35,7 +44,8 @@ export function buildReport(date) {
   const [y, m, d] = date.split('-');
   const header = `📅 ${d}.${m}.${y}\n\n${VIRDLAR.map(v => v.label).join('\n')}\n\n`;
 
-  const users = getAllUsers();
+  const excludedTelegramIds = getReportExcludedTelegramIds();
+  const users = getAllUsers().filter(user => !excludedTelegramIds.has(user.telegram_id));
   const active = [];
   const lazy = [];
 
