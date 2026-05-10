@@ -54,20 +54,27 @@ export function buildReport(date) {
     const doneKeys = new Set(rows.filter(r => r.status === 'done').map(r => r.vird_key));
     const name = user.first_name;
     if (doneKeys.size === 0) {
-      lazy.push(`${LRM} ${name}${LRM}`);
+      lazy.push(name);
     } else {
       const emojis = VIRDLAR
         .filter(v => doneKeys.has(v.key))
         .map(v => v.label.split(' ')[0])
-        .join(' • ');
-      active.push(`${LRM} ${name}${LRM} — ${emojis}`);
+        .join(' ');
+      active.push({ name, emojis, count: doneKeys.size });
     }
   }
 
   let report = header;
-  report += active.length ? active.join('\n') : '_(hech kim kiritmadi)_';
+  if (active.length) {
+    report += active
+      .map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM} — [${u.count}]\n${u.emojis}`)
+      .join('\n\n');
+  } else {
+    report += '_(hech kim kiritmadi)_';
+  }
   if (lazy.length) {
-    report += `\n\n😴 *G'aflat doskasi:*\n${lazy.join('\n')}`;
+    report += `\n\n😴 *G'aflat doskasi:* [${lazy.length}]\n`;
+    report += lazy.map((n, i) => `${LRM}${i + 1}. ${n}${LRM}`).join('\n');
   }
   return report;
 }
