@@ -67,13 +67,13 @@ export function buildReport(date) {
   let report = header;
   if (active.length) {
     report += active
-      .map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM} — [${u.count}]\n${u.emojis}`)
+      .map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM} — \\[${u.count}]\n${u.emojis}`)
       .join('\n\n');
   } else {
     report += '_(hech kim kiritmadi)_';
   }
   if (lazy.length) {
-    report += `\n\n😴 *G'aflat doskasi:* [${lazy.length}]\n`;
+    report += `\n\n😴 *G'aflat doskasi:* \\[${lazy.length}]\n`;
     report += lazy.map((n, i) => `${LRM}${i + 1}. ${n}${LRM}`).join('\n');
   }
   return report;
