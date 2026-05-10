@@ -8,7 +8,8 @@ export const VIRDLAR = [
   { key: 'mulk',     label: '📖💰 Мулк' },
   { key: 'duolar',   label: '🤲 Дуолар' },
   { key: 'oyatlar',  label: '📑 285-286' },
-  { key: 'mutolaa',  label: '📚 Мутолаа' },
+  { key: 'mutolaa',  label: '📚 Ярим пора' },
+  { key: 'mutolaa',  label: '📚 Бир пора' },
   { key: 'muhosaba', label: '🧠 Муҳосаба' },
   { key: 'qazo',     label: '⏳ Қазо рўза' },
 ];
