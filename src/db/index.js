@@ -51,14 +51,6 @@ export function getAllUsers() {
   `).all();
 }
 
-export function getUserByTelegramId(telegramId) {
-  return getDb().prepare(`
-    SELECT *, COALESCE(NULLIF(custom_name, ''), first_name) AS display_name
-    FROM users
-    WHERE telegram_id = ?
-  `).get(telegramId);
-}
-
 export function updateUserAdmin(id, { customName, groupKey, isBanned, excludeFromReport }) {
   const d = getDb();
   d.prepare(`

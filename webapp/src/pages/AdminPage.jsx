@@ -58,7 +58,7 @@ function UserRow({ user, filter, onUserUpdate }) {
         <div className="user-virdlar-panel">
           <div className="user-admin-controls" onClick={e => e.stopPropagation()}>
             <label>
-              <span>Custom nom</span>
+              <span>Ko'rinadigan nom</span>
               <input
                 type="text"
                 value={customName}
