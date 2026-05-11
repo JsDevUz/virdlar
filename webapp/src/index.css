@@ -343,6 +343,16 @@ body {
 .user-acc-name {
   flex: 1;
   font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-acc-name small {
+  color: var(--hint);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .user-acc-count {
@@ -356,10 +366,78 @@ body {
   color: var(--hint);
 }
 
+.user-badge {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+
+.user-badge.banned {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.user-badge.hidden {
+  background: #e2e3e5;
+  color: #41464b;
+}
+
+.user-badge.group {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
 .user-virdlar-panel {
   background: var(--secondary-bg);
   border-bottom: 2px solid rgba(0,0,0,0.1);
   animation: slideDown 0.15s ease;
+}
+
+.user-admin-controls {
+  display: grid;
+  gap: 10px;
+  padding: 12px 16px 12px 28px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+.user-admin-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--hint);
+}
+
+.user-admin-controls input[type="text"],
+.user-admin-controls input:not([type]),
+.user-admin-controls select {
+  border: 1.5px solid var(--hint);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  padding: 8px 10px;
+  outline: none;
+}
+
+.user-admin-controls input:focus {
+  border-color: var(--button);
+}
+
+.user-admin-controls .check-control {
+  flex-direction: row;
+  align-items: center;
+  color: var(--text);
+  font-size: 13px;
+  gap: 8px;
+}
+
+.user-admin-controls .check-control input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--button);
 }
 
 @keyframes slideDown {

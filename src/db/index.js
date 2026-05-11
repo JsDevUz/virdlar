@@ -13,11 +13,24 @@ export function initDb() {
   db.pragma('foreign_keys = ON');
   const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
   db.exec(schema);
+  migrateDb();
 }
 
 export function getDb() {
   if (!db) throw new Error('DB not initialized');
   return db;
+}
+
+function migrateDb() {
+  const columns = getDb().prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  const missing = [
+    ['custom_name', 'ALTER TABLE users ADD COLUMN custom_name TEXT'],
+    ['group_key', 'ALTER TABLE users ADD COLUMN group_key TEXT'],
+    ['is_banned', 'ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0'],
+    ['exclude_from_report', 'ALTER TABLE users ADD COLUMN exclude_from_report INTEGER NOT NULL DEFAULT 0'],
+  ].filter(([name]) => !columns.includes(name));
+
+  for (const [, sql] of missing) getDb().exec(sql);
 }
 
 export function upsertUser(telegramId, firstName) {
@@ -31,7 +44,42 @@ export function upsertUser(telegramId, firstName) {
 }
 
 export function getAllUsers() {
-  return getDb().prepare('SELECT * FROM users ORDER BY first_name').all();
+  return getDb().prepare(`
+    SELECT *, COALESCE(NULLIF(custom_name, ''), first_name) AS display_name
+    FROM users
+    ORDER BY display_name
+  `).all();
+}
+
+export function getUserByTelegramId(telegramId) {
+  return getDb().prepare(`
+    SELECT *, COALESCE(NULLIF(custom_name, ''), first_name) AS display_name
+    FROM users
+    WHERE telegram_id = ?
+  `).get(telegramId);
+}
+
+export function updateUserAdmin(id, { customName, groupKey, isBanned, excludeFromReport }) {
+  const d = getDb();
+  d.prepare(`
+    UPDATE users
+    SET custom_name = ?,
+        group_key = ?,
+        is_banned = ?,
+        exclude_from_report = ?
+    WHERE id = ?
+  `).run(
+    customName?.trim() || null,
+    groupKey || null,
+    isBanned ? 1 : 0,
+    excludeFromReport ? 1 : 0,
+    id
+  );
+  return d.prepare(`
+    SELECT *, COALESCE(NULLIF(custom_name, ''), first_name) AS display_name
+    FROM users
+    WHERE id = ?
+  `).get(id);
 }
 
 export function getTodayStr() {
@@ -68,7 +116,13 @@ export function getVirdlarByUserDate(userId, date) {
 
 export function getVirdlarForAdmin({ userId, date, month, year }) {
   const d = getDb();
-  let q = 'SELECT v.*, u.first_name FROM virdlar v JOIN users u ON u.id = v.user_id WHERE 1=1';
+  let q = `
+    SELECT v.*, u.first_name, u.custom_name,
+           COALESCE(NULLIF(u.custom_name, ''), u.first_name) AS display_name
+    FROM virdlar v
+    JOIN users u ON u.id = v.user_id
+    WHERE 1=1
+  `;
   const params = [];
   if (userId) { q += ' AND v.user_id = ?'; params.push(userId); }
   if (date)   { q += ' AND v.date = ?';    params.push(date); }

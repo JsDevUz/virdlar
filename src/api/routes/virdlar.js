@@ -12,6 +12,9 @@ export function buildVirdlarRouter() {
   router.get('/', (req, res) => {
     const tgUser = req.telegramUser;
     const user = upsertUser(tgUser.id, tgUser.first_name || 'Xonim');
+    if (user.is_banned) {
+      return res.status(403).json({ error: 'Sizga botdan foydalanish taqiqlangan' });
+    }
     const date = req.query.date || getTodayStr();
     const rows = getVirdlarByUserDate(user.id, date);
     res.json(rows);
@@ -37,6 +40,9 @@ export function buildVirdlarRouter() {
     }
     const tgUser = req.telegramUser;
     const user = upsertUser(tgUser.id, tgUser.first_name || 'Xonim');
+    if (user.is_banned) {
+      return res.status(403).json({ error: 'Sizga botdan foydalanish taqiqlangan' });
+    }
     const vird = upsertVird({ userId: user.id, virdKey: vird_key, date, status, comment });
     res.json(vird);
   });

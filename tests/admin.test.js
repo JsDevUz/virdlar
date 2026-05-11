@@ -28,6 +28,20 @@ describe('GET /api/admin/users', () => {
   });
 });
 
+describe('PATCH /api/admin/users/:id', () => {
+  it('updates custom name and visibility flags', async () => {
+    const res = await request(app)
+      .patch(`/api/admin/users/${u2.id}`)
+      .send({ custom_name: 'M. opa', group_key: 'taqsim1', is_banned: true, exclude_from_report: true });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.custom_name, 'M. opa');
+    assert.equal(res.body.group_key, 'taqsim1');
+    assert.equal(res.body.display_name, 'M. opa');
+    assert.equal(res.body.is_banned, 1);
+    assert.equal(res.body.exclude_from_report, 1);
+  });
+});
+
 describe('GET /api/admin/virdlar', () => {
   it('filters by date', async () => {
     const res = await request(app).get('/api/admin/virdlar?date=2026-05-09');

@@ -7,7 +7,7 @@ process.env.DATABASE_PATH = ':memory:';
 process.env.BOT_TOKEN = 'test';
 process.env.ADMIN_IDS = '1';
 
-const { initDb, upsertUser } = await import('../src/db/index.js');
+const { initDb, upsertUser, getTodayStr } = await import('../src/db/index.js');
 initDb();
 upsertUser(42, 'Nigora');
 
@@ -33,7 +33,7 @@ describe('POST /api/virdlar', () => {
   it('creates a vird record', async () => {
     const res = await request(app)
       .post('/api/virdlar')
-      .send({ vird_key: 'tahajjud', date: '2026-05-09', status: 'done', comment: '' });
+      .send({ vird_key: 'tahajjud', date: getTodayStr(), status: 'done', comment: '' });
     assert.equal(res.status, 200);
     assert.equal(res.body.status, 'done');
     assert.equal(res.body.vird_key, 'tahajjud');

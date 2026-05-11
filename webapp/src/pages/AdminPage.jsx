@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
-import { VIRDLAR } from '../constants.js';
+import { TAQSIM_GROUPS, VIRDLAR } from '../constants.js';
 
-function UserRow({ user, filter }) {
+function UserRow({ user, filter, onUserUpdate }) {
   const [open, setOpen] = useState(false);
   const [virdlar, setVirdlar] = useState([]);
   const [commentModal, setCommentModal] = useState(null);
+  const [customName, setCustomName] = useState(user.custom_name || '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setCustomName(user.custom_name || '');
+  }, [user.custom_name]);
 
   useEffect(() => {
     if (!open) return;
@@ -15,17 +21,88 @@ function UserRow({ user, filter }) {
 
   const recordMap = Object.fromEntries(virdlar.map(r => [r.vird_key, r]));
   const doneCount = virdlar.filter(r => r.status === 'done').length;
+  const displayName = user.display_name || user.custom_name || user.first_name;
+  const group = TAQSIM_GROUPS.find(item => item.key === user.group_key);
+
+  async function saveUser(patch = {}) {
+    setSaving(true);
+    try {
+      const updated = await api.updateUser(user.id, {
+        custom_name: customName,
+        group_key: user.group_key || null,
+        is_banned: Boolean(user.is_banned),
+        exclude_from_report: Boolean(user.exclude_from_report),
+        ...patch,
+      });
+      onUserUpdate(updated);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
       <div className={`user-accordion-row ${open ? 'open' : ''}`} onClick={() => setOpen(o => !o)}>
-        <span className="user-acc-name">{user.first_name}</span>
+        <span className="user-acc-name">
+          {displayName}
+          {user.custom_name && <small>{user.first_name}</small>}
+        </span>
+        {group ? <span className="user-badge group">{group.label}</span> : null}
+        {user.is_banned ? <span className="user-badge banned">Ban</span> : null}
+        {user.exclude_from_report ? <span className="user-badge hidden">Hisobdan yashirin</span> : null}
         {open && <span className="user-acc-count">{doneCount}/{VIRDLAR.length} ✅</span>}
         <span className="user-acc-arrow">{open ? '▲' : '▼'}</span>
       </div>
 
       {open && (
         <div className="user-virdlar-panel">
+          <div className="user-admin-controls" onClick={e => e.stopPropagation()}>
+            <label>
+              <span>Custom nom</span>
+              <input
+                type="text"
+                value={customName}
+                onChange={e => setCustomName(e.target.value)}
+                onBlur={() => saveUser()}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                }}
+                placeholder={user.first_name}
+                disabled={saving}
+              />
+            </label>
+            <label className="check-control">
+              <input
+                type="checkbox"
+                checked={Boolean(user.is_banned)}
+                disabled={saving}
+                onChange={e => saveUser({ is_banned: e.target.checked })}
+              />
+              <span>Botdan taqiqlash</span>
+            </label>
+            <label className="check-control">
+              <input
+                type="checkbox"
+                checked={Boolean(user.exclude_from_report)}
+                disabled={saving}
+                onChange={e => saveUser({ exclude_from_report: e.target.checked })}
+              />
+              <span>Hisobotda ko'rsatmaslik</span>
+            </label>
+            <label>
+              <span>Guruh</span>
+              <select
+                value={user.group_key || ''}
+                disabled={saving}
+                onChange={e => saveUser({ group_key: e.target.value || null })}
+              >
+                <option value="">Guruhsiz</option>
+                {TAQSIM_GROUPS.map(item => (
+                  <option key={item.key} value={item.key}>{item.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
           {VIRDLAR.map(v => {
             const rec = recordMap[v.key];
             return (
@@ -70,6 +147,10 @@ export function AdminPage({ onBack }) {
 
   useEffect(() => { api.getUsers().then(setUsers); }, []);
 
+  function updateUser(updated) {
+    setUsers(list => list.map(user => user.id === updated.id ? updated : user));
+  }
+
   const years  = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const days   = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -95,7 +176,7 @@ export function AdminPage({ onBack }) {
       <div className="accordion-list">
         {users.length === 0 && <p className="hint">Foydalanuvchilar yo'q</p>}
         {users.map(u => (
-          <UserRow key={u.id} user={u} filter={filter} />
+          <UserRow key={u.id} user={u} filter={filter} onUserUpdate={updateUser} />
         ))}
       </div>
     </div>

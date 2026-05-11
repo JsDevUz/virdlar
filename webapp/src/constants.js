@@ -13,3 +13,8 @@ export const VIRDLAR = [
   { key: 'muhosaba', label: '🧠 Муҳосаба' },
   { key: 'qazo',     label: '⏳ Қазо рўза' },
 ];
+
+export const TAQSIM_GROUPS = [
+  { key: 'taqsim1', label: '1-taqsim' },
+  { key: 'taqsim2', label: '2-taqsim' },
+];
