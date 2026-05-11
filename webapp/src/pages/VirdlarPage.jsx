@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { VirdCard } from '../components/VirdCard.jsx';
 import { CommentModal } from '../components/CommentModal.jsx';
 import { api } from '../api.js';
-import { VIRDLAR } from '../constants.js';
 
 function getTodayStr() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tashkent' }).format(new Date());
@@ -23,12 +22,14 @@ export function VirdlarPage({ tgUser, isAdmin, onAdminClick }) {
   const today = getTodayStr();
   const locked = isLocked() || import.meta.env.VITE_FORCE_LOCKED === 'true';
   const [records, setRecords] = useState([]);
+  const [VIRDLAR, setVirdlar] = useState([]);
   const [loadingKey, setLoadingKey] = useState(null);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
     api.getVirdlar(today).then(setRecords).catch(console.error);
+    api.getVirdlarConfig().then(setVirdlar).catch(console.error);
   }, [today]);
 
   const recordMap = Object.fromEntries(records.map(r => [r.vird_key, r]));

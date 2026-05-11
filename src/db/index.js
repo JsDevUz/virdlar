@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { VIRDLAR as DEFAULT_VIRDLAR } from '../constants.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 let db;
@@ -14,6 +15,16 @@ export function initDb() {
   const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
   db.exec(schema);
   migrateDb();
+  seedVirdlarConfig();
+}
+
+function seedVirdlarConfig() {
+  const count = getDb().prepare('SELECT COUNT(*) AS n FROM virdlar_config').get().n;
+  if (count > 0) return;
+  const stmt = getDb().prepare(
+    'INSERT INTO virdlar_config (key, label, sort_order, is_active) VALUES (?, ?, ?, 1)'
+  );
+  DEFAULT_VIRDLAR.forEach((v, i) => stmt.run(v.key, v.label, i));
 }
 
 export function getDb() {
@@ -74,19 +85,87 @@ export function updateUserAdmin(id, { customName, groupKey, isBanned, excludeFro
   `).get(id);
 }
 
+export function getVirdlarConfig({ includeInactive = false } = {}) {
+  const sql = includeInactive
+    ? 'SELECT * FROM virdlar_config ORDER BY sort_order, id'
+    : 'SELECT * FROM virdlar_config WHERE is_active = 1 ORDER BY sort_order, id';
+  return getDb().prepare(sql).all();
+}
+
+function slugify(label) {
+  const map = {
+    а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'j',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'x',ц:'ts',ч:'ch',ш:'sh',щ:'sh',ъ:'',ы:'i',ь:'',э:'e',ю:'yu',я:'ya',ў:'o',қ:'q',ғ:'g',ҳ:'h'
+  };
+  const stripped = [...label.toLowerCase()]
+    .map(ch => map[ch] ?? (/[a-z0-9]/.test(ch) ? ch : ''))
+    .join('');
+  return stripped || 'vird';
+}
+
+function uniqueKey(base) {
+  const d = getDb();
+  let key = base;
+  let i = 1;
+  while (d.prepare('SELECT 1 FROM virdlar_config WHERE key = ?').get(key)) {
+    key = `${base}${i++}`;
+  }
+  return key;
+}
+
+export function addVird({ label }) {
+  const d = getDb();
+  const key = uniqueKey(slugify(label));
+  const maxOrder = d.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM virdlar_config').get().m;
+  d.prepare(
+    'INSERT INTO virdlar_config (key, label, sort_order, is_active) VALUES (?, ?, ?, 1)'
+  ).run(key, label, maxOrder + 1);
+  return d.prepare('SELECT * FROM virdlar_config WHERE key = ?').get(key);
+}
+
+export function updateVird(id, { label, isActive }) {
+  const d = getDb();
+  const fields = [];
+  const params = [];
+  if (label !== undefined) { fields.push('label = ?'); params.push(label); }
+  if (isActive !== undefined) { fields.push('is_active = ?'); params.push(isActive ? 1 : 0); }
+  if (fields.length === 0) return d.prepare('SELECT * FROM virdlar_config WHERE id = ?').get(id);
+  params.push(id);
+  d.prepare(`UPDATE virdlar_config SET ${fields.join(', ')} WHERE id = ?`).run(...params);
+  return d.prepare('SELECT * FROM virdlar_config WHERE id = ?').get(id);
+}
+
+export function moveVird(id, direction) {
+  const d = getDb();
+  const current = d.prepare('SELECT * FROM virdlar_config WHERE id = ?').get(id);
+  if (!current) return null;
+  const op = direction === 'up' ? '<' : '>';
+  const order = direction === 'up' ? 'DESC' : 'ASC';
+  const neighbor = d.prepare(
+    `SELECT * FROM virdlar_config WHERE sort_order ${op} ? ORDER BY sort_order ${order} LIMIT 1`
+  ).get(current.sort_order);
+  if (!neighbor) return current;
+  const tx = d.transaction(() => {
+    d.prepare('UPDATE virdlar_config SET sort_order = ? WHERE id = ?').run(neighbor.sort_order, current.id);
+    d.prepare('UPDATE virdlar_config SET sort_order = ? WHERE id = ?').run(current.sort_order, neighbor.id);
+  });
+  tx();
+  return d.prepare('SELECT * FROM virdlar_config WHERE id = ?').get(id);
+}
+
 export function getTodayStr() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tashkent' }).format(new Date());
 }
 
 export function isLocked() {
-  const hour = Number(
-    new Intl.DateTimeFormat('en', {
-      timeZone: 'Asia/Tashkent',
-      hour: 'numeric',
-      hour12: false,
-    }).format(new Date())
-  );
-  return hour >= 23;
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Tashkent',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(new Date());
+  const hour = Number(parts.find(part => part.type === 'hour')?.value);
+  const minute = Number(parts.find(part => part.type === 'minute')?.value);
+  return hour > 23 || (hour === 23 && minute >= 50);
 }
 
 export function upsertVird({ userId, virdKey, date, status, comment }) {

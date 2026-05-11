@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import { VIRDLAR } from '../../constants.js';
 import {
-  upsertUser, upsertVird, getVirdlarByUserDate, getTodayStr, isLocked
+  upsertUser, upsertVird, getVirdlarByUserDate, getTodayStr, isLocked, getVirdlarConfig
 } from '../../db/index.js';
-
-const VALID_KEYS = new Set(VIRDLAR.map(v => v.key));
 
 export function buildVirdlarRouter() {
   const router = Router();
+
+  router.get('/config', (_req, res) => {
+    res.json(getVirdlarConfig());
+  });
 
   router.get('/', (req, res) => {
     const tgUser = req.telegramUser;
@@ -28,7 +29,8 @@ export function buildVirdlarRouter() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "Noto'g'ri sana formati" });
     }
-    if (!VALID_KEYS.has(vird_key)) {
+    const validKeys = new Set(getVirdlarConfig().map(v => v.key));
+    if (!validKeys.has(vird_key)) {
       return res.status(400).json({ error: "Noto'g'ri vird_key" });
     }
     if (!['done', 'not_done'].includes(status)) {
