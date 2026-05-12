@@ -3,32 +3,6 @@ import { getAllUsers, getVirdlarByUserDate, getTodayStr, getVirdlarConfig } from
 import { TAQSIM_GROUPS } from '../constants.js';
 
 const LRM = '\u200E';
-const REMINDERS = [
-  {
-    time: '0 5 * * *',
-    title: 'Ibn Atoulloh al-Iskandariy',
-    source: 'Al-Hikam al-Atoiyya',
-    quote: '"Virdning kelishi senga bog\'liq, voridning (ilohiy fayzning) kelishi esa Robbingga bog\'liq. Sen o\'zingga bog\'liq bo\'lgan narsani (virdni) tashlama, shunda Robbing ham O\'ziga xos bo\'lgan narsani (voridni) uzib qo\'ymaydi."',
-  },
-  {
-    time: '0 11 * * *',
-    title: 'Imom Navaviy',
-    source: 'Al-Azkor',
-    quote: '"Kimning tunda yoki kunduzi o\'qiydigan virdi (vazifasi) bo\'lsa-yu, uni biror sabab bilan o\'tkazib yuborsa, keyin uni qazo qilib o\'qib olishi lozim. Zero, kishi o\'zini virdga odatlantirsa, uni o\'tkazib yuborganda malol keladigan bo\'ladi va bu odat xayrli davomiylikka sabab bo\'ladi."',
-  },
-  {
-    time: '0 15 * * *',
-    title: 'Yahyo ibn Muoz Ar-Roziy',
-    source: "Siyar a'lamun nubala",
-    quote: '"Kimning zohirida virdi (vazifasi) bo\'lmasa, uning botinida nuri (ruhiy quvvati) bo\'lmaydi."',
-  },
-  {
-    time: '0 20 * * *',
-    title: 'Abu Hafs Haddod',
-    source: 'Hilyatul avliyo',
-    quote: '"Kim har vaqt o\'z virdini (doimiy amalini) tekshirib turmasa va har lahzada o\'z holatidan xabardor bo\'lmasa, u kishi \'er kishilar\' (komil insonlar) safida emasdir."',
-  },
-];
 
 function getReportExcludedTelegramIds() {
   return new Set(
@@ -39,37 +13,7 @@ function getReportExcludedTelegramIds() {
   );
 }
 
-function getReminderChatIds() {
-  const raw = process.env.REMINDER_CHAT_IDS || process.env.ADMIN_IDS || '';
-  return raw
-    .split(',')
-    .map(Number)
-    .filter(id => Number.isFinite(id) && id < 0);
-}
-
-function buildReminderMessage({ title, source, quote }) {
-  return [
-    '🌿 *Vird eslatmasi*',
-    '',
-    `*${title}*`,
-    quote,
-    '',
-    `_Manba: ${source}_`,
-  ].join('\n');
-}
-
 export function startScheduler(bot) {
-  for (const reminder of REMINDERS) {
-    cron.schedule(reminder.time, async () => {
-      const message = buildReminderMessage(reminder);
-      for (const chatId of getReminderChatIds()) {
-        try {
-          await bot.telegram.sendMessage(chatId, message, { parse_mode: 'Markdown' });
-        } catch { /* silent */ }
-      }
-    }, { timezone: 'Asia/Tashkent' });
-  }
-
   // 22:50 Toshkent — ogohlantirish
   cron.schedule('50 22 * * *', async () => {
     const users = getAllUsers().filter(user => !user.is_banned);
