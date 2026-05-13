@@ -2,25 +2,11 @@ import { useState, useEffect } from 'react';
 import { VirdCard } from '../components/VirdCard.jsx';
 import { CommentModal } from '../components/CommentModal.jsx';
 import { api } from '../api.js';
-
-function getTodayStr() {
-  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tashkent' }).format(new Date());
-}
-
-function isLocked() {
-  const hour = Number(
-    new Intl.DateTimeFormat('en', {
-      timeZone: 'Asia/Tashkent',
-      hour: 'numeric',
-      hour12: false,
-    }).format(new Date())
-  );
-  return hour >= 23;
-}
+import { getTodayStr, isVirdInputLockedAt } from '../time.js';
 
 export function VirdlarPage({ tgUser, isAdmin, onAdminClick }) {
   const today = getTodayStr();
-  const locked = isLocked() || import.meta.env.VITE_FORCE_LOCKED === 'true';
+  const locked = isVirdInputLockedAt() || import.meta.env.VITE_FORCE_LOCKED === 'true';
   const [records, setRecords] = useState([]);
   const [VIRDLAR, setVirdlar] = useState([]);
   const [loadingKey, setLoadingKey] = useState(null);
