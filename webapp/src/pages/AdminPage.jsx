@@ -287,25 +287,67 @@ function GroupsTab() {
 }
 
 function GroupRow({ group, busy, onSave }) {
-  const [adminIds, setAdminIds] = useState(group.admin_ids || '');
+  const [open, setOpen] = useState(false);
+  const [groupUsers, setGroupUsers] = useState([]);
+  const [adminIdSet, setAdminIdSet] = useState(
+    new Set((group.admin_ids || '').split(',').map(Number).filter(Boolean))
+  );
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    api.getGroupUsers(group.id).then(setGroupUsers);
+  }, [open, group.id]);
+
+  function toggle(telegramId) {
+    setAdminIdSet(prev => {
+      const next = new Set(prev);
+      next.has(telegramId) ? next.delete(telegramId) : next.add(telegramId);
+      return next;
+    });
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await onSave([...adminIdSet].join(','));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div className="vird-config-row">
-      <div style={{ flex: 1 }}>
-        <strong>{group.name}</strong>
-        <small style={{ marginLeft: 8, opacity: 0.6 }}>/{group.slug}</small>
-        <label style={{ display: 'block', marginTop: 8 }}>
-          <span style={{ fontSize: 12, opacity: 0.7 }}>Admin ID lar (vergul bilan)</span>
-          <input
-            value={adminIds}
-            onChange={e => setAdminIds(e.target.value)}
-            onBlur={() => adminIds !== group.admin_ids && onSave(adminIds)}
-            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-            placeholder="111,222,333"
-            disabled={busy}
-            style={{ width: '100%', marginTop: 4 }}
-          />
-        </label>
+    <div style={{ borderBottom: '1px solid var(--border, #eee)' }}>
+      <div
+        className="user-accordion-row"
+        onClick={() => setOpen(o => !o)}
+        style={{ cursor: 'pointer' }}
+      >
+        <span className="user-acc-name"><strong>{group.name}</strong> <small style={{ opacity: 0.5 }}>/{group.slug}</small></span>
+        <span className="user-acc-arrow">{open ? '▲' : '▼'}</span>
       </div>
+      {open && (
+        <div style={{ padding: '8px 16px 16px' }} onClick={e => e.stopPropagation()}>
+          {groupUsers.filter(u => !u.is_banned).map(u => (
+            <label key={u.id} className="check-control" style={{ padding: '6px 0' }}>
+              <input
+                type="checkbox"
+                checked={adminIdSet.has(u.telegram_id)}
+                onChange={() => toggle(u.telegram_id)}
+                disabled={saving || busy}
+              />
+              <span>{u.display_name || u.first_name}</span>
+            </label>
+          ))}
+          {groupUsers.length === 0 && <p className="hint">Hali hech kim qo'shilmagan</p>}
+          <button onClick={save} disabled={saving || busy} style={{ marginTop: 8 }}>
+            {saved ? '✅ Saqlandi' : 'Saqlash'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

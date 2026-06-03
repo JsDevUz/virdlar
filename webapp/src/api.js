@@ -41,6 +41,7 @@ export const api = {
   updateGroupAdmins: (adminIds) => apiFetch('/api/admin/group-admins', { method: 'PATCH', body: JSON.stringify({ admin_ids: adminIds }) }),
 
   getGroups: () => apiFetch('/api/groups'),
+  getGroupUsers: (id) => apiFetch(`/api/groups/${id}/users`),
   createGroup: (body) => apiFetch('/api/groups', { method: 'POST', body: JSON.stringify(body) }),
   updateGroup: (id, body) => apiFetch(`/api/groups/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 };

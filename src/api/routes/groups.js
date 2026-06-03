@@ -26,6 +26,14 @@ export function buildGroupsRouter() {
     }
   });
 
+  router.get('/:id/users', (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "Noto'g'ri id" });
+    }
+    res.json(getAllUsers(id));
+  });
+
   router.patch('/:id', (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
