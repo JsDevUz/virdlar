@@ -11,7 +11,7 @@ export function buildVirdlarRouter() {
   router.get('/', (req, res) => {
     if (!req.groupId) return res.status(400).json({ error: 'Guruh ko\'rsatilmagan' });
     const tgUser = req.telegramUser;
-    const user = upsertUser(tgUser.id, tgUser.first_name || 'Xonim', req.groupId);
+    const user = upsertUser(tgUser.id, tgUser.first_name || 'Unknown', req.groupId);
     if (user.is_banned) {
       return res.status(403).json({ error: 'Sizga botdan foydalanish taqiqlangan' });
     }
@@ -41,7 +41,7 @@ export function buildVirdlarRouter() {
       return res.status(403).json({ error: 'Faqat bugungi sanaga kiritish mumkin' });
     }
     const tgUser = req.telegramUser;
-    const user = upsertUser(tgUser.id, tgUser.first_name || 'Xonim', req.groupId);
+    const user = upsertUser(tgUser.id, tgUser.first_name || 'Unknown', req.groupId);
     if (user.is_banned) {
       return res.status(403).json({ error: 'Sizga botdan foydalanish taqiqlangan' });
     }

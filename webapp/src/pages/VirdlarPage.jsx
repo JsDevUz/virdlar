@@ -63,7 +63,7 @@ export function VirdlarPage({ tgUser, isAdmin, onAdminClick }) {
       <header className="page-header">
         <div>
           <div className="date">{dateLabel}</div>
-          <div className="username">{tgUser?.first_name} xonim</div>
+          <div className="username">{tgUser?.first_name}</div>
         </div>
         {isAdmin && (
           <button className="admin-btn" onClick={onAdminClick}>Admin</button>

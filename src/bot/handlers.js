@@ -47,7 +47,7 @@ export function registerHandlers(bot, webappUrl) {
     if (isAdmin) keyboard.push([{ text: '📊 Bugungi hisobot', callback_data: `report:${group.id}` }]);
 
     await ctx.reply(
-      `Assalomu Alaykum, ${first_name} xonim! 👋`,
+      `Assalomu Alaykum, ${first_name}! 👋`,
       { reply_markup: { inline_keyboard: keyboard } }
     );
   });
