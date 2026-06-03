@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllGroups, createGroup, updateGroup, seedGroupVirdlarConfig } from '../../db/index.js';
+import { getAllGroups, createGroup, updateGroup, seedGroupVirdlarConfig, getAllUsers } from '../../db/index.js';
 
 export function buildGroupsRouter() {
   const router = Router();
