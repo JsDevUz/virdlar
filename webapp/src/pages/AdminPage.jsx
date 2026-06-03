@@ -204,25 +204,33 @@ function VirdConfigRow({ vird, isFirst, isLast, onRename, onToggleActive, onMove
   );
 }
 
-function AdminsTab() {
-  const [adminIds, setAdminIds] = useState('');
+function AdminsTab({ users }) {
+  const [adminIdSet, setAdminIdSet] = useState(new Set());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get('g');
     api.getGroups().then(groups => {
-      const slug = new URLSearchParams(window.location.search).get('g');
       const group = groups.find(g => g.slug === slug);
-      if (group) setAdminIds(group.admin_ids || '');
-      setLoaded(true);
+      if (!group) return;
+      const ids = (group.admin_ids || '').split(',').map(Number).filter(Boolean);
+      setAdminIdSet(new Set(ids));
     });
   }, []);
+
+  function toggle(telegramId) {
+    setAdminIdSet(prev => {
+      const next = new Set(prev);
+      next.has(telegramId) ? next.delete(telegramId) : next.add(telegramId);
+      return next;
+    });
+  }
 
   async function save() {
     setSaving(true);
     try {
-      await api.updateGroupAdmins(adminIds);
+      await api.updateGroupAdmins([...adminIdSet].join(','));
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
@@ -230,26 +238,25 @@ function AdminsTab() {
     }
   }
 
-  if (!loaded) return null;
-
   return (
-    <div className="vird-config-list" style={{ padding: 16 }}>
-      <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 12 }}>
-        Telegram ID larni vergul bilan kiriting. Bot guruh havolasi orqali boshlangan foydalanuvchilarga admin tugmasi ko'rinadi.
-      </p>
-      <label>
-        <span style={{ fontSize: 12, opacity: 0.7 }}>Admin ID lar</span>
-        <input
-          value={adminIds}
-          onChange={e => setAdminIds(e.target.value)}
-          placeholder="111222333,444555666"
-          disabled={saving}
-          style={{ width: '100%', marginTop: 4 }}
-        />
-      </label>
-      <button onClick={save} disabled={saving} style={{ marginTop: 12 }}>
-        {saved ? '✅ Saqlandi' : 'Saqlash'}
-      </button>
+    <div className="vird-config-list">
+      {users.filter(u => !u.is_banned).map(u => (
+        <label key={u.id} className="check-control" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border, #eee)' }}>
+          <input
+            type="checkbox"
+            checked={adminIdSet.has(u.telegram_id)}
+            onChange={() => toggle(u.telegram_id)}
+            disabled={saving}
+          />
+          <span>{u.display_name || u.first_name}</span>
+        </label>
+      ))}
+      {users.length === 0 && <p className="hint">Foydalanuvchilar yo'q</p>}
+      <div style={{ padding: 16 }}>
+        <button onClick={save} disabled={saving}>
+          {saved ? '✅ Saqlandi' : 'Saqlash'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -364,7 +371,7 @@ export function AdminPage({ isSuperAdmin, onBack }) {
       )}
 
       {tab === 'virdlar' && <VirdlarConfigTab />}
-      {tab === 'admins' && <AdminsTab />}
+      {tab === 'admins' && <AdminsTab users={users} />}
       {tab === 'groups' && isSuperAdmin && <GroupsTab />}
     </div>
   );
