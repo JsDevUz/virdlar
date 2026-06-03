@@ -1,4 +1,4 @@
-import { upsertUser, getTodayStr, getGroupBySlug } from '../db/index.js';
+import { upsertUser, getTodayStr, getGroupBySlug, getAllGroups } from '../db/index.js';
 import { buildReport } from './scheduler.js';
 
 export function registerHandlers(bot, webappUrl) {
@@ -7,9 +7,24 @@ export function registerHandlers(bot, webappUrl) {
   bot.start(async (ctx) => {
     const { id, first_name } = ctx.from;
     const slug = ctx.startPayload;
+    const isSuperAdmin = superAdminIds.includes(id);
 
     if (!slug) {
-      await ctx.reply('Guruh havolasi orqali kiring. Masalan: /start maktab-7');
+      if (isSuperAdmin) {
+        const groups = getAllGroups().filter(g => g.is_active);
+        if (groups.length === 0) {
+          await ctx.reply('Hozircha guruhlar yo\'q. Webapp orqali guruh yarating.', {
+            reply_markup: { inline_keyboard: [[{ text: '⚙️ Boshqaruv paneli', web_app: { url: webappUrl } }]] }
+          });
+        } else {
+          const buttons = groups.map(g => ([{ text: `👥 ${g.name}`, web_app: { url: `${webappUrl}?g=${g.slug}` } }]));
+          await ctx.reply(`Assalomu Alaykum, ${first_name}! 👋\nQaysi guruhni ochmoqchisiz?`, {
+            reply_markup: { inline_keyboard: buttons }
+          });
+        }
+      } else {
+        await ctx.reply('Guruh havolasi orqali kiring.');
+      }
       return;
     }
 
@@ -26,7 +41,7 @@ export function registerHandlers(bot, webappUrl) {
     }
 
     const groupAdminIds = (group.admin_ids || '').split(',').map(Number).filter(Boolean);
-    const isAdmin = superAdminIds.includes(id) || groupAdminIds.includes(id);
+    const isAdmin = isSuperAdmin || groupAdminIds.includes(id);
     const appUrl = `${webappUrl}?g=${slug}`;
     const keyboard = [[{ text: '📿 Virdlarni kiritish', web_app: { url: appUrl } }]];
     if (isAdmin) keyboard.push([{ text: '📊 Bugungi hisobot', callback_data: `report:${group.id}` }]);
