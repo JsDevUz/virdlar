@@ -1,56 +1,50 @@
 import cron from 'node-cron';
-import { getAllUsers, getVirdlarByUserDate, getTodayStr, getVirdlarConfig } from '../db/index.js';
-import { TAQSIM_GROUPS } from '../constants.js';
+import { getAllUsers, getAllGroups, getVirdlarByUserDate, getTodayStr, getVirdlarConfig } from '../db/index.js';
 
-const LRM = '\u200E';
-
-function getReportExcludedTelegramIds() {
-  return new Set(
-    (process.env.REPORT_EXCLUDED_TELEGRAM_IDS || '')
-      .split(',')
-      .map(Number)
-      .filter(Boolean)
-  );
-}
+const LRM = '‎';
 
 export function startScheduler(bot) {
-  // 22:50 Toshkent — ogohlantirish
   cron.schedule('50 22 * * *', async () => {
-    const users = getAllUsers().filter(user => !user.is_banned);
-    for (const user of users) {
-      try {
-        await bot.telegram.sendMessage(
-          user.telegram_id,
-          '⏰ Bugungi virdlarni kiritishga ohirgi muhlat tugashiga 1 soat qoldi!'
-        );
-      } catch { /* user may have blocked bot */ }
+    const groups = getAllGroups().filter(g => g.is_active);
+    for (const group of groups) {
+      const users = getAllUsers(group.id).filter(u => !u.is_banned);
+      for (const user of users) {
+        try {
+          await bot.telegram.sendMessage(
+            user.telegram_id,
+            '⏰ Bugungi virdlarni kiritishga ohirgi muhlat tugashiga 1 soat qoldi!'
+          );
+        } catch { /* user may have blocked bot */ }
+      }
     }
   }, { timezone: 'Asia/Tashkent' });
 
-  // 23:55 Toshkent — adminlarga hisobot
   cron.schedule('55 23 * * *', async () => {
-    const adminIds = (process.env.ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
+    const superAdminIds = (process.env.SUPER_ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
     const today = getTodayStr();
-    const report = buildReport(today);
-    for (const adminId of adminIds) {
-      try {
-        await bot.telegram.sendMessage(adminId, report, { parse_mode: 'Markdown' });
-      } catch { /* silent */ }
+    const groups = getAllGroups().filter(g => g.is_active);
+
+    for (const group of groups) {
+      const report = buildReport(today, group.id);
+      const adminIds = [
+        ...(group.admin_ids || '').split(',').map(Number).filter(Boolean),
+        ...superAdminIds,
+      ];
+      for (const adminId of [...new Set(adminIds)]) {
+        try {
+          await bot.telegram.sendMessage(adminId, report, { parse_mode: 'Markdown' });
+        } catch { /* silent */ }
+      }
     }
   }, { timezone: 'Asia/Tashkent' });
 }
 
-export function buildReport(date) {
+export function buildReport(date, groupId) {
   const [y, m, d] = date.split('-');
-  const VIRDLAR = getVirdlarConfig();
+  const VIRDLAR = getVirdlarConfig(groupId);
   const header = `📅 ${d}.${m}.${y}\n\n${VIRDLAR.map(v => v.label).join('\n')}\n\n`;
 
-  const excludedTelegramIds = getReportExcludedTelegramIds();
-  const users = getAllUsers().filter(user =>
-    !user.is_banned &&
-    !user.exclude_from_report &&
-    !excludedTelegramIds.has(user.telegram_id)
-  );
+  const users = getAllUsers(groupId).filter(u => !u.is_banned && !u.exclude_from_report);
   const active = [];
   const lazy = [];
 
@@ -59,55 +53,26 @@ export function buildReport(date) {
     const doneKeys = new Set(rows.filter(r => r.status === 'done').map(r => r.vird_key));
     const name = user.display_name;
     if (doneKeys.size === 0) {
-      lazy.push({ name, groupKey: user.group_key || null });
+      lazy.push({ name });
     } else {
       const emojis = VIRDLAR
         .filter(v => doneKeys.has(v.key))
         .map(v => v.label.split(' ')[0])
         .join(' ');
-      active.push({ name, emojis, count: doneKeys.size, groupKey: user.group_key || null });
+      active.push({ name, emojis, count: doneKeys.size });
     }
   }
 
   let report = header;
   if (active.length) {
-    report += renderGroupedActive(active);
+    const rows = active.map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM} — [${u.count}]\n${u.emojis}`).join('\n\n');
+    report += rows;
   } else {
     report += '_(hech kim kiritmadi)_';
   }
   if (lazy.length) {
     report += `\n\n😴 *G'aflat doskasi:* [${lazy.length}]\n`;
-    report += renderGroupedLazy(lazy);
+    report += lazy.map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM}`).join('\n');
   }
   return report;
-}
-
-function getReportGroups(items) {
-  const knownGroups = TAQSIM_GROUPS.map(group => ({
-    ...group,
-    items: items.filter(item => item.groupKey === group.key),
-  }));
-  const ungrouped = items.filter(item => !TAQSIM_GROUPS.some(group => group.key === item.groupKey));
-  if (ungrouped.length) knownGroups.push({ key: null, label: 'Guruhsiz', items: ungrouped });
-  return knownGroups.filter(group => group.items.length);
-}
-
-function renderGroupedActive(items) {
-  return getReportGroups(items)
-    .map(group => {
-      const rows = group.items
-        .map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM} — [${u.count}]\n${u.emojis}`)
-        .join('\n\n');
-      return `*${group.label}*\n${rows}`;
-    })
-    .join('\n\n');
-}
-
-function renderGroupedLazy(items) {
-  return getReportGroups(items)
-    .map(group => {
-      const rows = group.items.map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM}`).join('\n');
-      return `*${group.label}*\n${rows}`;
-    })
-    .join('\n\n');
 }
