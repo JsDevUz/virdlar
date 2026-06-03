@@ -236,7 +236,7 @@ function AdminsTab({ users, groupAdminIds }) {
   return (
     <div className="vird-config-list">
       {candidates.map(u => (
-        <label key={u.id} className="check-control" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border, #eee)' }}>
+        <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--border, #eee)', cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={adminIdSet.has(u.telegram_id)}
@@ -358,7 +358,7 @@ function GroupRow({ group, busy, onSave }) {
       {open && (
         <div style={{ padding: '8px 16px 16px' }} onClick={e => e.stopPropagation()}>
           {groupUsers.filter(u => !u.is_banned).map(u => (
-            <label key={u.id} className="check-control" style={{ padding: '6px 0' }}>
+            <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={adminIdSet.has(u.telegram_id)}
