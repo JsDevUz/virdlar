@@ -74,6 +74,15 @@ export function upsertUser(telegramId, firstName, groupId) {
   return d.prepare('SELECT * FROM users WHERE telegram_id = ? AND group_id = ?').get(telegramId, groupId);
 }
 
+export function getUserGroups(telegramId) {
+  return getDb().prepare(`
+    SELECT g.* FROM groups g
+    JOIN users u ON u.group_id = g.id
+    WHERE u.telegram_id = ? AND g.is_active = 1
+    ORDER BY u.created_at
+  `).all(telegramId);
+}
+
 export function getAllUsers(groupId) {
   return getDb().prepare(`
     SELECT *, COALESCE(NULLIF(custom_name, ''), first_name) AS display_name

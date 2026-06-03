@@ -1,4 +1,4 @@
-import { upsertUser, getTodayStr, getGroupBySlug, getAllGroups } from '../db/index.js';
+import { upsertUser, getTodayStr, getGroupBySlug, getAllGroups, getUserGroups } from '../db/index.js';
 import { buildReport } from './scheduler.js';
 
 export function registerHandlers(bot, webappUrl) {
@@ -22,9 +22,33 @@ export function registerHandlers(bot, webappUrl) {
             reply_markup: { inline_keyboard: buttons }
           });
         }
-      } else {
-        await ctx.reply('Guruh havolasi orqali kiring.');
+        return;
       }
+
+      // Avval qo'shilgan guruhlarini tekshir
+      const userGroups = getUserGroups(id);
+      if (userGroups.length === 1) {
+        // Bitta guruhda bo'lsa — to'g'ridan shu guruhga yo'naltir
+        const group = userGroups[0];
+        const groupAdminIds = (group.admin_ids || '').split(',').map(Number).filter(Boolean);
+        const isAdmin = groupAdminIds.includes(id);
+        const appUrl = `${webappUrl}?g=${group.slug}`;
+        const keyboard = [[{ text: '📿 Virdlarni kiritish', web_app: { url: appUrl } }]];
+        if (isAdmin) keyboard.push([{ text: '📊 Bugungi hisobot', callback_data: `report:${group.id}` }]);
+        await ctx.reply(`Assalomu Alaykum, ${first_name} xonim! 👋`, {
+          reply_markup: { inline_keyboard: keyboard }
+        });
+        return;
+      } else if (userGroups.length > 1) {
+        // Bir nechta guruhda bo'lsa — tanlash
+        const buttons = userGroups.map(g => ([{ text: `👥 ${g.name}`, web_app: { url: `${webappUrl}?g=${g.slug}` } }]));
+        await ctx.reply(`Assalomu Alaykum, ${first_name} xonim! 👋\nQaysi guruhni ochmoqchisiz?`, {
+          reply_markup: { inline_keyboard: buttons }
+        });
+        return;
+      }
+
+      await ctx.reply('Guruh havolasi orqali kiring.');
       return;
     }
 
