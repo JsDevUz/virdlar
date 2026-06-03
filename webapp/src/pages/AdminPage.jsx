@@ -264,9 +264,23 @@ function AdminsTab({ users }) {
 function GroupsTab() {
   const [groups, setGroups] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newSlug, setNewSlug] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const reload = () => api.getGroups().then(setGroups);
   useEffect(() => { reload(); }, []);
+
+  async function createGroup() {
+    if (!newName.trim() || !newSlug.trim()) return;
+    setCreating(true);
+    try {
+      await api.createGroup({ name: newName.trim(), slug: newSlug.trim() });
+      setNewName('');
+      setNewSlug('');
+      await reload();
+    } finally { setCreating(false); }
+  }
 
   async function saveAdminIds(id, adminIds) {
     setBusy(true);
@@ -278,7 +292,24 @@ function GroupsTab() {
 
   return (
     <div className="vird-config-list">
-      {groups.length === 0 && <p className="hint">Guruhlar yo'q</p>}
+      <div className="vird-config-add" style={{ flexDirection: 'column', gap: 8, padding: 16 }}>
+        <input
+          placeholder="Guruh nomi (masalan: 7-sinf)"
+          value={newName}
+          onChange={e => setNewName(e.target.value)}
+          disabled={creating}
+        />
+        <input
+          placeholder="Havola (masalan: sinf-7, faqat a-z 0-9 -)"
+          value={newSlug}
+          onChange={e => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+          disabled={creating}
+        />
+        <button onClick={createGroup} disabled={creating || !newName.trim() || !newSlug.trim()}>
+          {creating ? '...' : "Guruh qo'shish"}
+        </button>
+      </div>
+      {groups.length === 0 && <p className="hint">Hozircha guruhlar yo'q</p>}
       {groups.map(g => (
         <GroupRow key={`${g.id}-${g.admin_ids}`} group={g} busy={busy} onSave={adminIds => saveAdminIds(g.id, adminIds)} />
       ))}
