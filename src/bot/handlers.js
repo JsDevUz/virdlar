@@ -76,6 +76,46 @@ export function registerHandlers(bot, webappUrl) {
     );
   });
 
+  bot.command('link', async (ctx) => {
+    const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+
+    // Faqat guruh chatlarida ishlaydi
+    if (ctx.chat.type === 'private') {
+      await ctx.reply('Bu buyruq faqat guruh chatida ishlaydi.');
+      return;
+    }
+
+    // Admin tekshiruv
+    const isSuperAdmin = superAdminIds.includes(userId);
+    if (!isSuperAdmin) {
+      // Guruh adminmi?
+      const groups = getAllGroups().filter(g => g.is_active && String(g.telegram_group_id) === String(chatId));
+      const isGroupAdmin = groups.some(g =>
+        (g.admin_ids || '').split(',').map(Number).filter(Boolean).includes(userId)
+      );
+      if (!isGroupAdmin) return; // Jim o'tkazib yuborish
+    }
+
+    // Shu chat bilan bog'liq guruhni topish
+    const groups = getAllGroups().filter(g => g.is_active && String(g.telegram_group_id) === String(chatId));
+    if (groups.length === 0) {
+      await ctx.reply('Bu guruh hali sozlanmagan. Admin paneldan Telegram guruh ID ni kiriting.');
+      return;
+    }
+
+    const botInfo = await ctx.telegram.getMe();
+    const group = groups[0];
+    const joinUrl = `https://t.me/${botInfo.username}?start=${group.slug}`;
+
+    await ctx.reply(`👥 *${group.name}* ga a'zo bo'lish`, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [[{ text: "✅ A'zo bo'lish", url: joinUrl }]]
+      }
+    });
+  });
+
   bot.action(/^report:(\d+)$/, async (ctx) => {
     const groupId = Number(ctx.match[1]);
     await ctx.answerCbQuery();
