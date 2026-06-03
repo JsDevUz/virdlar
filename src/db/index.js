@@ -14,17 +14,6 @@ export function initDb() {
   db.pragma('foreign_keys = ON');
   const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
   db.exec(schema);
-  migrateDb();
-  seedVirdlarConfig();
-}
-
-function seedVirdlarConfig() {
-  const count = getDb().prepare('SELECT COUNT(*) AS n FROM virdlar_config').get().n;
-  if (count > 0) return;
-  const stmt = getDb().prepare(
-    'INSERT INTO virdlar_config (key, label, sort_order, is_active) VALUES (?, ?, ?, 1)'
-  );
-  DEFAULT_VIRDLAR.forEach((v, i) => stmt.run(v.key, v.label, i));
 }
 
 export function getDb() {
@@ -32,64 +21,96 @@ export function getDb() {
   return db;
 }
 
-function migrateDb() {
-  const columns = getDb().prepare('PRAGMA table_info(users)').all().map(c => c.name);
-  const missing = [
-    ['custom_name', 'ALTER TABLE users ADD COLUMN custom_name TEXT'],
-    ['group_key', 'ALTER TABLE users ADD COLUMN group_key TEXT'],
-    ['is_banned', 'ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0'],
-    ['exclude_from_report', 'ALTER TABLE users ADD COLUMN exclude_from_report INTEGER NOT NULL DEFAULT 0'],
-  ].filter(([name]) => !columns.includes(name));
+// ── Groups ──────────────────────────────────────────────
 
-  for (const [, sql] of missing) getDb().exec(sql);
+export function createGroup({ slug, name, adminIds = '' }) {
+  const d = getDb();
+  d.prepare(
+    'INSERT INTO groups (slug, name, admin_ids) VALUES (?, ?, ?)'
+  ).run(slug, name, adminIds);
+  return d.prepare('SELECT * FROM groups WHERE slug = ?').get(slug);
 }
 
-export function upsertUser(telegramId, firstName) {
+export function getGroupBySlug(slug) {
+  return getDb().prepare('SELECT * FROM groups WHERE slug = ? AND is_active = 1').get(slug);
+}
+
+export function getAllGroups() {
+  return getDb().prepare('SELECT * FROM groups ORDER BY id').all();
+}
+
+export function updateGroup(id, { name, adminIds, isActive }) {
+  const d = getDb();
+  const fields = [];
+  const params = [];
+  if (name !== undefined)     { fields.push('name = ?');      params.push(name); }
+  if (adminIds !== undefined) { fields.push('admin_ids = ?'); params.push(adminIds); }
+  if (isActive !== undefined) { fields.push('is_active = ?'); params.push(isActive ? 1 : 0); }
+  if (!fields.length) return d.prepare('SELECT * FROM groups WHERE id = ?').get(id);
+  params.push(id);
+  d.prepare(`UPDATE groups SET ${fields.join(', ')} WHERE id = ?`).run(...params);
+  return d.prepare('SELECT * FROM groups WHERE id = ?').get(id);
+}
+
+export function seedGroupVirdlarConfig(groupId) {
+  const d = getDb();
+  const count = d.prepare('SELECT COUNT(*) AS n FROM virdlar_config WHERE group_id = ?').get(groupId).n;
+  if (count > 0) return;
+  const stmt = d.prepare(
+    'INSERT INTO virdlar_config (group_id, key, label, sort_order, is_active) VALUES (?, ?, ?, ?, 1)'
+  );
+  DEFAULT_VIRDLAR.forEach((v, i) => stmt.run(groupId, v.key, v.label, i));
+}
+
+// ── Users ────────────────────────────────────────────────
+
+export function upsertUser(telegramId, firstName, groupId) {
   const d = getDb();
   d.prepare(`
-    INSERT INTO users (telegram_id, first_name)
-    VALUES (?, ?)
-    ON CONFLICT(telegram_id) DO UPDATE SET first_name = excluded.first_name
-  `).run(telegramId, firstName);
-  return d.prepare('SELECT * FROM users WHERE telegram_id = ?').get(telegramId);
+    INSERT INTO users (telegram_id, first_name, group_id)
+    VALUES (?, ?, ?)
+    ON CONFLICT(telegram_id, group_id) DO UPDATE SET first_name = excluded.first_name
+  `).run(telegramId, firstName, groupId);
+  return d.prepare('SELECT * FROM users WHERE telegram_id = ? AND group_id = ?').get(telegramId, groupId);
 }
 
-export function getAllUsers() {
+export function getAllUsers(groupId) {
   return getDb().prepare(`
     SELECT *, COALESCE(NULLIF(custom_name, ''), first_name) AS display_name
     FROM users
+    WHERE group_id = ?
     ORDER BY display_name
-  `).all();
+  `).all(groupId);
 }
 
-export function updateUserAdmin(id, { customName, groupKey, isBanned, excludeFromReport }) {
+export function updateUserAdmin(id, groupId, { customName, isBanned, excludeFromReport }) {
   const d = getDb();
   d.prepare(`
     UPDATE users
     SET custom_name = ?,
-        group_key = ?,
         is_banned = ?,
         exclude_from_report = ?
-    WHERE id = ?
+    WHERE id = ? AND group_id = ?
   `).run(
     customName?.trim() || null,
-    groupKey || null,
     isBanned ? 1 : 0,
     excludeFromReport ? 1 : 0,
-    id
+    id,
+    groupId
   );
   return d.prepare(`
     SELECT *, COALESCE(NULLIF(custom_name, ''), first_name) AS display_name
-    FROM users
-    WHERE id = ?
-  `).get(id);
+    FROM users WHERE id = ? AND group_id = ?
+  `).get(id, groupId);
 }
 
-export function getVirdlarConfig({ includeInactive = false } = {}) {
+// ── Virdlar Config ───────────────────────────────────────
+
+export function getVirdlarConfig(groupId, { includeInactive = false } = {}) {
   const sql = includeInactive
-    ? 'SELECT * FROM virdlar_config ORDER BY sort_order, id'
-    : 'SELECT * FROM virdlar_config WHERE is_active = 1 ORDER BY sort_order, id';
-  return getDb().prepare(sql).all();
+    ? 'SELECT * FROM virdlar_config WHERE group_id = ? ORDER BY sort_order, id'
+    : 'SELECT * FROM virdlar_config WHERE group_id = ? AND is_active = 1 ORDER BY sort_order, id';
+  return getDb().prepare(sql).all(groupId);
 }
 
 function slugify(label) {
@@ -102,71 +123,57 @@ function slugify(label) {
   return stripped || 'vird';
 }
 
-function uniqueKey(base) {
+function uniqueKey(groupId, base) {
   const d = getDb();
   let key = base;
   let i = 1;
-  while (d.prepare('SELECT 1 FROM virdlar_config WHERE key = ?').get(key)) {
+  while (d.prepare('SELECT 1 FROM virdlar_config WHERE group_id = ? AND key = ?').get(groupId, key)) {
     key = `${base}${i++}`;
   }
   return key;
 }
 
-export function addVird({ label }) {
+export function addVird(groupId, { label }) {
   const d = getDb();
-  const key = uniqueKey(slugify(label));
-  const maxOrder = d.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM virdlar_config').get().m;
+  const key = uniqueKey(groupId, slugify(label));
+  const maxOrder = d.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM virdlar_config WHERE group_id = ?').get(groupId).m;
   d.prepare(
-    'INSERT INTO virdlar_config (key, label, sort_order, is_active) VALUES (?, ?, ?, 1)'
-  ).run(key, label, maxOrder + 1);
-  return d.prepare('SELECT * FROM virdlar_config WHERE key = ?').get(key);
+    'INSERT INTO virdlar_config (group_id, key, label, sort_order, is_active) VALUES (?, ?, ?, ?, 1)'
+  ).run(groupId, key, label, maxOrder + 1);
+  return d.prepare('SELECT * FROM virdlar_config WHERE group_id = ? AND key = ?').get(groupId, key);
 }
 
-export function updateVird(id, { label, isActive }) {
+export function updateVird(id, groupId, { label, isActive }) {
   const d = getDb();
   const fields = [];
   const params = [];
-  if (label !== undefined) { fields.push('label = ?'); params.push(label); }
+  if (label !== undefined)    { fields.push('label = ?');     params.push(label); }
   if (isActive !== undefined) { fields.push('is_active = ?'); params.push(isActive ? 1 : 0); }
-  if (fields.length === 0) return d.prepare('SELECT * FROM virdlar_config WHERE id = ?').get(id);
-  params.push(id);
-  d.prepare(`UPDATE virdlar_config SET ${fields.join(', ')} WHERE id = ?`).run(...params);
-  return d.prepare('SELECT * FROM virdlar_config WHERE id = ?').get(id);
+  if (!fields.length) return d.prepare('SELECT * FROM virdlar_config WHERE id = ? AND group_id = ?').get(id, groupId);
+  params.push(id, groupId);
+  d.prepare(`UPDATE virdlar_config SET ${fields.join(', ')} WHERE id = ? AND group_id = ?`).run(...params);
+  return d.prepare('SELECT * FROM virdlar_config WHERE id = ? AND group_id = ?').get(id, groupId);
 }
 
-export function moveVird(id, direction) {
+export function moveVird(id, groupId, direction) {
   const d = getDb();
-  const current = d.prepare('SELECT * FROM virdlar_config WHERE id = ?').get(id);
+  const current = d.prepare('SELECT * FROM virdlar_config WHERE id = ? AND group_id = ?').get(id, groupId);
   if (!current) return null;
   const op = direction === 'up' ? '<' : '>';
   const order = direction === 'up' ? 'DESC' : 'ASC';
   const neighbor = d.prepare(
-    `SELECT * FROM virdlar_config WHERE sort_order ${op} ? ORDER BY sort_order ${order} LIMIT 1`
-  ).get(current.sort_order);
+    `SELECT * FROM virdlar_config WHERE group_id = ? AND sort_order ${op} ? ORDER BY sort_order ${order} LIMIT 1`
+  ).get(groupId, current.sort_order);
   if (!neighbor) return current;
   const tx = d.transaction(() => {
     d.prepare('UPDATE virdlar_config SET sort_order = ? WHERE id = ?').run(neighbor.sort_order, current.id);
     d.prepare('UPDATE virdlar_config SET sort_order = ? WHERE id = ?').run(current.sort_order, neighbor.id);
   });
   tx();
-  return d.prepare('SELECT * FROM virdlar_config WHERE id = ?').get(id);
+  return d.prepare('SELECT * FROM virdlar_config WHERE id = ? AND group_id = ?').get(id, groupId);
 }
 
-export function getTodayStr() {
-  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tashkent' }).format(new Date());
-}
-
-export function isLocked() {
-  const parts = new Intl.DateTimeFormat('en', {
-    timeZone: 'Asia/Tashkent',
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: false,
-  }).formatToParts(new Date());
-  const hour = Number(parts.find(part => part.type === 'hour')?.value);
-  const minute = Number(parts.find(part => part.type === 'minute')?.value);
-  return hour > 23 || (hour === 23 && minute >= 50);
-}
+// ── Virdlar ──────────────────────────────────────────────
 
 export function upsertVird({ userId, virdKey, date, status, comment }) {
   const d = getDb();
@@ -185,16 +192,16 @@ export function getVirdlarByUserDate(userId, date) {
   return getDb().prepare('SELECT * FROM virdlar WHERE user_id=? AND date=?').all(userId, date);
 }
 
-export function getVirdlarForAdmin({ userId, date, month, year }) {
+export function getVirdlarForAdmin(groupId, { userId, date, month, year }) {
   const d = getDb();
   let q = `
     SELECT v.*, u.first_name, u.custom_name,
            COALESCE(NULLIF(u.custom_name, ''), u.first_name) AS display_name
     FROM virdlar v
     JOIN users u ON u.id = v.user_id
-    WHERE 1=1
+    WHERE u.group_id = ?
   `;
-  const params = [];
+  const params = [groupId];
   if (userId) { q += ' AND v.user_id = ?'; params.push(userId); }
   if (date)   { q += ' AND v.date = ?';    params.push(date); }
   if (month && year) {
@@ -205,4 +212,22 @@ export function getVirdlarForAdmin({ userId, date, month, year }) {
     params.push(String(year));
   }
   return d.prepare(q).all(...params);
+}
+
+// ── Utility ──────────────────────────────────────────────
+
+export function getTodayStr() {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tashkent' }).format(new Date());
+}
+
+export function isLocked() {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Tashkent',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(new Date());
+  const hour = Number(parts.find(p => p.type === 'hour')?.value);
+  const minute = Number(parts.find(p => p.type === 'minute')?.value);
+  return hour > 23 || (hour === 23 && minute >= 50);
 }
