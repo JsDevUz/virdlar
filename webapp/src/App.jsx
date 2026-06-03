@@ -11,6 +11,7 @@ export default function App() {
   const [tgUser, setTgUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const slug = getGroupSlug();
 
   useEffect(() => {
@@ -25,11 +26,14 @@ export default function App() {
       setIsSuperAdmin(superAdminIds.includes(user?.id));
     } else if (import.meta.env.DEV) {
       const devId = Number(import.meta.env.VITE_DEV_USER_ID || 0);
-      const devUser = { id: devId, first_name: import.meta.env.VITE_DEV_USER_NAME || 'DevXonim' };
+      const devUser = { id: devId, first_name: import.meta.env.VITE_DEV_USER_NAME || 'Dev' };
       setTgUser(devUser);
       setIsSuperAdmin(superAdminIds.includes(devId));
     }
+    setLoaded(true);
   }, []);
+
+  if (!loaded) return null;
 
   if (!slug && !isSuperAdmin) {
     return (
@@ -38,6 +42,11 @@ export default function App() {
         <p>Bot orqali kiring.</p>
       </div>
     );
+  }
+
+  // Slugsiz super-admin to'g'ridan admin paneliga
+  if (!slug && isSuperAdmin) {
+    return <AdminPage isSuperAdmin={true} onBack={null} />;
   }
 
   if (page === 'admin') {

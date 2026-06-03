@@ -379,7 +379,7 @@ export function AdminPage({ isSuperAdmin, onBack }) {
   return (
     <div className="page admin-page">
       <header className="page-header">
-        <button onClick={onBack}>← Orqaga</button>
+        {onBack && <button onClick={onBack}>← Orqaga</button>}
         <h2>Admin panel</h2>
         {tab === 'users' && (
           <div className="filters">
