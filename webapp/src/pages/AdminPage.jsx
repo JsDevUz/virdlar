@@ -204,7 +204,7 @@ function VirdConfigRow({ vird, isFirst, isLast, onRename, onToggleActive, onMove
   );
 }
 
-function AdminsTab({ users, groupAdminIds }) {
+function AdminsTab({ users, groupAdminIds, superAdminIds }) {
   const [adminIdSet, setAdminIdSet] = useState(new Set(groupAdminIds));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -231,7 +231,7 @@ function AdminsTab({ users, groupAdminIds }) {
     }
   }
 
-  const candidates = users.filter(u => !u.is_banned && u.telegram_id !== myId);
+  const candidates = users.filter(u => !u.is_banned && u.telegram_id !== myId && !(superAdminIds || []).includes(u.telegram_id));
 
   return (
     <div className="vird-config-list">
@@ -397,7 +397,7 @@ function GroupRow({ group, busy, onSave }) {
   );
 }
 
-export function AdminPage({ isSuperAdmin, groupAdminIds = [], onBack }) {
+export function AdminPage({ isSuperAdmin, groupAdminIds = [], superAdminIds = [], onBack }) {
   const now = new Date();
   const [users, setUsers] = useState([]);
   const [VIRDLAR, setVirdlar] = useState([]);
@@ -458,7 +458,7 @@ export function AdminPage({ isSuperAdmin, groupAdminIds = [], onBack }) {
       )}
 
       {tab === 'virdlar' && <VirdlarConfigTab />}
-      {tab === 'admins' && <AdminsTab users={users} groupAdminIds={groupAdminIds} />}
+      {tab === 'admins' && <AdminsTab users={users} groupAdminIds={groupAdminIds} superAdminIds={superAdminIds} />}
       {tab === 'groups' && isSuperAdmin && <GroupsTab />}
     </div>
   );

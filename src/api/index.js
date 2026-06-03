@@ -27,7 +27,7 @@ app.get('/api/me', requireAuth, (req, res) => {
   const isSuperAdmin = superAdminIds.includes(req.telegramUser?.id);
   const groupAdminIds = (req.group?.admin_ids || '').split(',').map(Number).filter(Boolean);
   const isAdmin = isSuperAdmin || groupAdminIds.includes(req.telegramUser?.id);
-  res.json({ isAdmin, isSuperAdmin, groupAdminIds });
+  res.json({ isAdmin, isSuperAdmin, groupAdminIds, superAdminIds });
 });
 
 app.use('/api/groups',  requireAuth, requireSuperAdmin, buildGroupsRouter());
