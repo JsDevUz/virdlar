@@ -3,7 +3,7 @@ services:
     build:
       context: .
       args:
-        VITE_ADMIN_IDS: ${ADMIN_IDS}
+        VITE_SUPER_ADMIN_IDS: ${SUPER_ADMIN_IDS}
     env_file: .env
     volumes:
       - ./data:/app/data

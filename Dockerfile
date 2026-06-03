@@ -3,8 +3,8 @@ WORKDIR /app/webapp
 COPY webapp/package*.json ./
 RUN npm ci
 COPY webapp/ .
-ARG VITE_ADMIN_IDS
-ENV VITE_ADMIN_IDS=$VITE_ADMIN_IDS
+ARG VITE_SUPER_ADMIN_IDS
+ENV VITE_SUPER_ADMIN_IDS=$VITE_SUPER_ADMIN_IDS
 RUN npm run build
 
 FROM node:20-alpine
