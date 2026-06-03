@@ -22,6 +22,14 @@ app.use((req, _res, next) => {
 
 const bot = createBot();
 
+app.get('/api/me', requireAuth, (req, res) => {
+  const superAdminIds = (process.env.SUPER_ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
+  const isSuperAdmin = superAdminIds.includes(req.telegramUser?.id);
+  const groupAdminIds = (req.group?.admin_ids || '').split(',').map(Number).filter(Boolean);
+  const isAdmin = isSuperAdmin || groupAdminIds.includes(req.telegramUser?.id);
+  res.json({ isAdmin, isSuperAdmin });
+});
+
 app.use('/api/groups',  requireAuth, requireSuperAdmin, buildGroupsRouter());
 app.use('/api/virdlar', requireAuth, buildVirdlarRouter());
 app.use('/api/admin',   requireAuth, requireAdmin, buildAdminRouter());

@@ -23,6 +23,8 @@ async function apiFetch(path, options = {}) {
 }
 
 export const api = {
+  getMe: () => apiFetch('/api/me'),
+
   getVirdlar: (date) => apiFetch(`/api/virdlar?date=${date}`),
   postVird: (body)   => apiFetch('/api/virdlar', { method: 'POST', body: JSON.stringify(body) }),
   getVirdlarConfig: () => apiFetch('/api/virdlar/config'),
