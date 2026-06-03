@@ -204,20 +204,13 @@ function VirdConfigRow({ vird, isFirst, isLast, onRename, onToggleActive, onMove
   );
 }
 
-function AdminsTab({ users }) {
-  const [adminIdSet, setAdminIdSet] = useState(new Set());
+function AdminsTab({ users, groupAdminIds }) {
+  const [adminIdSet, setAdminIdSet] = useState(new Set(groupAdminIds));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    const slug = new URLSearchParams(window.location.search).get('g');
-    api.getGroups().then(groups => {
-      const group = groups.find(g => g.slug === slug);
-      if (!group) return;
-      const ids = (group.admin_ids || '').split(',').map(Number).filter(Boolean);
-      setAdminIdSet(new Set(ids));
-    });
-  }, []);
+  const tg = window.Telegram?.WebApp;
+  const myId = tg?.initDataUnsafe?.user?.id;
 
   function toggle(telegramId) {
     setAdminIdSet(prev => {
@@ -238,9 +231,11 @@ function AdminsTab({ users }) {
     }
   }
 
+  const candidates = users.filter(u => !u.is_banned && u.telegram_id !== myId);
+
   return (
     <div className="vird-config-list">
-      {users.filter(u => !u.is_banned).map(u => (
+      {candidates.map(u => (
         <label key={u.id} className="check-control" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border, #eee)' }}>
           <input
             type="checkbox"
@@ -251,7 +246,7 @@ function AdminsTab({ users }) {
           <span>{u.display_name || u.first_name}</span>
         </label>
       ))}
-      {users.length === 0 && <p className="hint">Foydalanuvchilar yo'q</p>}
+      {candidates.length === 0 && <p className="hint">Boshqa foydalanuvchilar yo'q</p>}
       <div style={{ padding: 16 }}>
         <button onClick={save} disabled={saving}>
           {saved ? '✅ Saqlandi' : 'Saqlash'}
@@ -383,7 +378,7 @@ function GroupRow({ group, busy, onSave }) {
   );
 }
 
-export function AdminPage({ isSuperAdmin, onBack }) {
+export function AdminPage({ isSuperAdmin, groupAdminIds = [], onBack }) {
   const now = new Date();
   const [users, setUsers] = useState([]);
   const [VIRDLAR, setVirdlar] = useState([]);
@@ -444,7 +439,7 @@ export function AdminPage({ isSuperAdmin, onBack }) {
       )}
 
       {tab === 'virdlar' && <VirdlarConfigTab />}
-      {tab === 'admins' && <AdminsTab users={users} />}
+      {tab === 'admins' && <AdminsTab users={users} groupAdminIds={groupAdminIds} />}
       {tab === 'groups' && isSuperAdmin && <GroupsTab />}
     </div>
   );

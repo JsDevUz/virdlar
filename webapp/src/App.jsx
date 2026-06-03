@@ -12,6 +12,7 @@ export default function App() {
   const [tgUser, setTgUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [groupAdminIds, setGroupAdminIds] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const slug = getGroupSlug();
 
@@ -31,9 +32,10 @@ export default function App() {
       setIsSuperAdmin(superAdminIds.includes(devId));
     }
 
-    api.getMe().then(({ isAdmin, isSuperAdmin }) => {
+    api.getMe().then(({ isAdmin, isSuperAdmin, groupAdminIds }) => {
       setIsAdmin(isAdmin);
       setIsSuperAdmin(isSuperAdmin);
+      setGroupAdminIds(groupAdminIds || []);
     }).catch(() => {}).finally(() => setLoaded(true));
   }, []);
 
@@ -50,11 +52,11 @@ export default function App() {
 
   // Slugsiz super-admin to'g'ridan admin paneliga
   if (!slug && isSuperAdmin) {
-    return <AdminPage isSuperAdmin={true} onBack={null} />;
+    return <AdminPage isSuperAdmin={true} groupAdminIds={[]} onBack={null} />;
   }
 
   if (page === 'admin') {
-    return <AdminPage isSuperAdmin={isSuperAdmin} onBack={() => setPage('virdlar')} />;
+    return <AdminPage isSuperAdmin={isSuperAdmin} groupAdminIds={groupAdminIds} onBack={() => setPage('virdlar')} />;
   }
 
   return (

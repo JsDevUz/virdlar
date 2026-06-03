@@ -1,15 +1,3 @@
 export const VIRDLAR = [
   { key: 'tahajjud', label: '🌃 Таҳажжуд намози' },
-  { key: 'zuho',     label: '🌄 Зуҳо намози' },
-  { key: 'zikrlar',  label: '📿 Зикрлар' },
-  { key: 'yasin',    label: '❤️ Ясин сураси' },
-  { key: 'takror',   label: '🔄 Такрор' },
-  { key: 'tavba',    label: '🧎‍♀️ Тавба' },
-  { key: 'mulk',     label: '👑 Мулк сураси' },
-  { key: 'duolar',   label: '🤲 Дуолар' },
-  { key: 'oyatlar',  label: '📑 285-286' },
-  { key: 'mutolaa1',  label: '½ Ярим пора' },
-  { key: 'mutolaa05', label: '📚 Бир пора' },
-  { key: 'muhosaba', label: '🧠 Муҳосаба' },
-  { key: 'qazo',     label: '⏳ Қазо рўза' },
 ];
