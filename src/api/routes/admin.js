@@ -1,14 +1,11 @@
 import { Router } from 'express';
 import { getAllUsers, getVirdlarForAdmin, updateUserAdmin, getVirdlarConfig, addVird, updateVird, moveVird } from '../../db/index.js';
-import { TAQSIM_GROUPS } from '../../constants.js';
-
-const VALID_GROUP_KEYS = new Set(TAQSIM_GROUPS.map(group => group.key));
 
 export function buildAdminRouter() {
   const router = Router();
 
-  router.get('/users', (_req, res) => {
-    res.json(getAllUsers());
+  router.get('/users', (req, res) => {
+    res.json(getAllUsers(req.groupId));
   });
 
   router.patch('/users/:id', (req, res) => {
@@ -16,18 +13,12 @@ export function buildAdminRouter() {
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ error: "Noto'g'ri user id" });
     }
-
-    const { custom_name, group_key, is_banned, exclude_from_report } = req.body;
+    const { custom_name, is_banned, exclude_from_report } = req.body;
     if (custom_name != null && typeof custom_name !== 'string') {
       return res.status(400).json({ error: "Noto'g'ri custom_name" });
     }
-    if (group_key && !VALID_GROUP_KEYS.has(group_key)) {
-      return res.status(400).json({ error: "Noto'g'ri group_key" });
-    }
-
-    const user = updateUserAdmin(id, {
+    const user = updateUserAdmin(id, req.groupId, {
       customName: custom_name,
-      groupKey: group_key || null,
       isBanned: Boolean(is_banned),
       excludeFromReport: Boolean(exclude_from_report),
     });
@@ -37,7 +28,7 @@ export function buildAdminRouter() {
 
   router.get('/virdlar', (req, res) => {
     const { user_id, date, month, year } = req.query;
-    const rows = getVirdlarForAdmin({
+    const rows = getVirdlarForAdmin(req.groupId, {
       userId: user_id ? Number(user_id) : null,
       date: date || null,
       month: month ? Number(month) : null,
@@ -46,8 +37,8 @@ export function buildAdminRouter() {
     res.json(rows);
   });
 
-  router.get('/virdlar-config', (_req, res) => {
-    res.json(getVirdlarConfig({ includeInactive: true }));
+  router.get('/virdlar-config', (req, res) => {
+    res.json(getVirdlarConfig(req.groupId, { includeInactive: true }));
   });
 
   router.post('/virdlar-config', (req, res) => {
@@ -55,7 +46,7 @@ export function buildAdminRouter() {
     if (!label || typeof label !== 'string' || !label.trim()) {
       return res.status(400).json({ error: "Label kerak" });
     }
-    res.json(addVird({ label: label.trim() }));
+    res.json(addVird(req.groupId, { label: label.trim() }));
   });
 
   router.patch('/virdlar-config/:id', (req, res) => {
@@ -64,7 +55,7 @@ export function buildAdminRouter() {
       return res.status(400).json({ error: "Noto'g'ri id" });
     }
     const { label, is_active } = req.body;
-    const updated = updateVird(id, {
+    const updated = updateVird(id, req.groupId, {
       label: label !== undefined ? String(label).trim() : undefined,
       isActive: is_active !== undefined ? Boolean(is_active) : undefined,
     });
@@ -78,7 +69,7 @@ export function buildAdminRouter() {
     if (!['up', 'down'].includes(direction)) {
       return res.status(400).json({ error: "direction = up|down" });
     }
-    const updated = moveVird(id, direction);
+    const updated = moveVird(id, req.groupId, direction);
     if (!updated) return res.status(404).json({ error: 'Topilmadi' });
     res.json(updated);
   });

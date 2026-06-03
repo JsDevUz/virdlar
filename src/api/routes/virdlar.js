@@ -1,18 +1,17 @@
 import { Router } from 'express';
-import {
-  upsertUser, upsertVird, getVirdlarByUserDate, getTodayStr, isLocked, getVirdlarConfig
-} from '../../db/index.js';
+import { upsertUser, upsertVird, getVirdlarByUserDate, getTodayStr, isLocked, getVirdlarConfig } from '../../db/index.js';
 
 export function buildVirdlarRouter() {
   const router = Router();
 
-  router.get('/config', (_req, res) => {
-    res.json(getVirdlarConfig());
+  router.get('/config', (req, res) => {
+    res.json(getVirdlarConfig(req.groupId));
   });
 
   router.get('/', (req, res) => {
+    if (!req.groupId) return res.status(400).json({ error: 'Guruh ko\'rsatilmagan' });
     const tgUser = req.telegramUser;
-    const user = upsertUser(tgUser.id, tgUser.first_name || 'Xonim');
+    const user = upsertUser(tgUser.id, tgUser.first_name || 'Xonim', req.groupId);
     if (user.is_banned) {
       return res.status(403).json({ error: 'Sizga botdan foydalanish taqiqlangan' });
     }
@@ -22,6 +21,7 @@ export function buildVirdlarRouter() {
   });
 
   router.post('/', (req, res) => {
+    if (!req.groupId) return res.status(400).json({ error: 'Guruh ko\'rsatilmagan' });
     if (isLocked()) {
       return res.status(403).json({ error: 'Bugungi virdlar yopildi' });
     }
@@ -29,7 +29,7 @@ export function buildVirdlarRouter() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "Noto'g'ri sana formati" });
     }
-    const validKeys = new Set(getVirdlarConfig().map(v => v.key));
+    const validKeys = new Set(getVirdlarConfig(req.groupId).map(v => v.key));
     if (!validKeys.has(vird_key)) {
       return res.status(400).json({ error: "Noto'g'ri vird_key" });
     }
@@ -41,7 +41,7 @@ export function buildVirdlarRouter() {
       return res.status(403).json({ error: 'Faqat bugungi sanaga kiritish mumkin' });
     }
     const tgUser = req.telegramUser;
-    const user = upsertUser(tgUser.id, tgUser.first_name || 'Xonim');
+    const user = upsertUser(tgUser.id, tgUser.first_name || 'Xonim', req.groupId);
     if (user.is_banned) {
       return res.status(403).json({ error: 'Sizga botdan foydalanish taqiqlangan' });
     }
