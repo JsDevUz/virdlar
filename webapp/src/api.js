@@ -31,6 +31,7 @@ export const api = {
 
   getUsers: ()       => apiFetch('/api/admin/users'),
   updateUser: (id, body) => apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteUser: (id) => apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' }),
   getAdminVirdlar: (params) => {
     const q = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v)));
     return apiFetch(`/api/admin/virdlar?${q}`);

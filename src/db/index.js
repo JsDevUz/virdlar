@@ -92,6 +92,15 @@ export function getUserGroups(telegramId) {
   `).all(telegramId);
 }
 
+export function deleteUser(id, groupId) {
+  const d = getDb();
+  const user = d.prepare('SELECT * FROM users WHERE id = ? AND group_id = ?').get(id, groupId);
+  if (!user) return null;
+  d.prepare('DELETE FROM virdlar WHERE user_id = ?').run(id);
+  d.prepare('DELETE FROM users WHERE id = ? AND group_id = ?').run(id, groupId);
+  return user;
+}
+
 export function getAllUsers(groupId) {
   return getDb().prepare(`
     SELECT *, COALESCE(NULLIF(custom_name, ''), first_name) AS display_name

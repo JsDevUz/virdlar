@@ -1,11 +1,21 @@
 import { Router } from 'express';
-import { getAllUsers, getVirdlarForAdmin, updateUserAdmin, getVirdlarConfig, addVird, updateVird, moveVird, updateGroup } from '../../db/index.js';
+import { getAllUsers, getVirdlarForAdmin, updateUserAdmin, deleteUser, getVirdlarConfig, addVird, updateVird, moveVird, updateGroup } from '../../db/index.js';
 
 export function buildAdminRouter() {
   const router = Router();
 
   router.get('/users', (req, res) => {
     res.json(getAllUsers(req.groupId));
+  });
+
+  router.delete('/users/:id', (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "Noto'g'ri user id" });
+    }
+    const deleted = deleteUser(id, req.groupId);
+    if (!deleted) return res.status(404).json({ error: 'User topilmadi' });
+    res.json({ ok: true });
   });
 
   router.patch('/users/:id', (req, res) => {

@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 
-function UserRow({ user, filter, onUserUpdate, VIRDLAR }) {
+function UserRow({ user, filter, onUserUpdate, onUserDelete, VIRDLAR }) {
   const [open, setOpen] = useState(false);
   const [virdlar, setVirdlar] = useState([]);
   const [commentModal, setCommentModal] = useState(null);
   const [customName, setCustomName] = useState(user.custom_name || '');
   const [saving, setSaving] = useState(false);
+
+  async function kickUser() {
+    if (!confirm(`${user.display_name || user.first_name} ni guruhdan chiqarasizmi?`)) return;
+    await api.deleteUser(user.id);
+    onUserDelete(user.id);
+  }
 
 
   useEffect(() => {
@@ -82,7 +88,13 @@ function UserRow({ user, filter, onUserUpdate, VIRDLAR }) {
               />
               <span>Hisobotda ko'rsatmaslik</span>
             </label>
-
+            <button
+              onClick={kickUser}
+              disabled={saving}
+              style={{ marginTop: 8, color: 'var(--danger, #e53e3e)', background: 'none', border: '1px solid currentColor', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}
+            >
+              Guruhdan chiqarish
+            </button>
           </div>
           {VIRDLAR.map(v => {
             const rec = recordMap[v.key];
@@ -417,6 +429,10 @@ export function AdminPage({ isSuperAdmin, groupAdminIds = [], superAdminIds = []
     setUsers(list => list.map(user => user.id === updated.id ? updated : user));
   }
 
+  function removeUser(id) {
+    setUsers(list => list.filter(user => user.id !== id));
+  }
+
   const years  = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const days   = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -452,7 +468,7 @@ export function AdminPage({ isSuperAdmin, groupAdminIds = [], superAdminIds = []
         <div className="accordion-list">
           {users.length === 0 && <p className="hint">Foydalanuvchilar yo'q</p>}
           {users.map(u => (
-            <UserRow key={u.id} user={u} filter={filter} onUserUpdate={updateUser} VIRDLAR={VIRDLAR} />
+            <UserRow key={u.id} user={u} filter={filter} onUserUpdate={updateUser} onUserDelete={removeUser} VIRDLAR={VIRDLAR} />
           ))}
         </div>
       )}
