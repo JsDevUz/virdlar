@@ -5,11 +5,14 @@ import request from 'supertest';
 
 process.env.DATABASE_PATH = ':memory:';
 process.env.BOT_TOKEN = 'test';
-process.env.ADMIN_IDS = '1';
+process.env.SUPER_ADMIN_IDS = '1';
 
-const { initDb, upsertUser, getTodayStr } = await import('../src/db/index.js');
+const { initDb, createGroup, seedGroupVirdlarConfig, upsertUser, getTodayStr } = await import('../src/db/index.js');
 initDb();
-upsertUser(42, 'Nigora');
+
+const group = createGroup({ slug: 'virdlar-test-guruh', name: 'Virdlar Test guruh', adminIds: '1' });
+seedGroupVirdlarConfig(group.id);
+upsertUser(42, 'Nigora', group.id);
 
 const { buildVirdlarRouter } = await import('../src/api/routes/virdlar.js');
 
@@ -17,6 +20,8 @@ const app = express();
 app.use(express.json());
 app.use((req, _res, next) => {
   req.telegramUser = { id: 42, first_name: 'Nigora' };
+  req.groupId = group.id;
+  req.group = group;
   next();
 });
 app.use('/api/virdlar', buildVirdlarRouter());

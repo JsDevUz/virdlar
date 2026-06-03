@@ -23,8 +23,9 @@ describe('DB', () => {
   });
 
   it('upsertUser creates and returns user', async () => {
-    const { upsertUser } = await import('../src/db/index.js');
-    const user = upsertUser(111, 'Nigora');
+    const { upsertUser, createGroup } = await import('../src/db/index.js');
+    const group = createGroup({ slug: 'db-test-guruh', name: 'DB Test guruh', adminIds: '' });
+    const user = upsertUser(111, 'Nigora', group.id);
     assert.equal(user.telegram_id, 111);
     assert.equal(user.first_name, 'Nigora');
   });
