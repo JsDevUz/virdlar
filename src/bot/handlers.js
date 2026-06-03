@@ -35,14 +35,14 @@ export function registerHandlers(bot, webappUrl) {
         const appUrl = `${webappUrl}?g=${group.slug}`;
         const keyboard = [[{ text: '📿 Virdlarni kiritish', web_app: { url: appUrl } }]];
         if (isAdmin) keyboard.push([{ text: '📊 Bugungi hisobot', callback_data: `report:${group.id}` }]);
-        await ctx.reply(`Assalomu Alaykum, ${first_name} xonim! 👋`, {
+        await ctx.reply(`Assalomu Alaykum, ${first_name}! 👋`, {
           reply_markup: { inline_keyboard: keyboard }
         });
         return;
       } else if (userGroups.length > 1) {
         // Bir nechta guruhda bo'lsa — tanlash
         const buttons = userGroups.map(g => ([{ text: `👥 ${g.name}`, web_app: { url: `${webappUrl}?g=${g.slug}` } }]));
-        await ctx.reply(`Assalomu Alaykum, ${first_name} xonim! 👋\nQaysi guruhni ochmoqchisiz?`, {
+        await ctx.reply(`Assalomu Alaykum, ${first_name}! 👋\nQaysi guruhni ochmoqchisiz?`, {
           reply_markup: { inline_keyboard: buttons }
         });
         return;
