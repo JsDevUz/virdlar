@@ -208,7 +208,57 @@ function VirdConfigRow({ vird, isFirst, isLast, onRename, onToggleActive, onMove
   );
 }
 
-export function AdminPage({ onBack }) {
+function GroupsTab() {
+  const [groups, setGroups] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const reload = () => api.getGroups().then(setGroups);
+  useEffect(() => { reload(); }, []);
+
+  async function saveAdminIds(id, adminIds) {
+    setBusy(true);
+    try {
+      await api.updateGroup(id, { admin_ids: adminIds });
+      await reload();
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="vird-config-list">
+      {groups.length === 0 && <p className="hint">Guruhlar yo'q</p>}
+      {groups.map(g => (
+        <GroupRow key={g.id} group={g} busy={busy} onSave={adminIds => saveAdminIds(g.id, adminIds)} />
+      ))}
+    </div>
+  );
+}
+
+function GroupRow({ group, busy, onSave }) {
+  const [adminIds, setAdminIds] = useState(group.admin_ids || '');
+  useEffect(() => { setAdminIds(group.admin_ids || ''); }, [group.admin_ids]);
+  return (
+    <div className="vird-config-row">
+      <div style={{ flex: 1 }}>
+        <strong>{group.name}</strong>
+        <small style={{ marginLeft: 8, opacity: 0.6 }}>/{group.slug}</small>
+        <label style={{ display: 'block', marginTop: 8 }}>
+          <span style={{ fontSize: 12, opacity: 0.7 }}>Admin ID lar (vergul bilan)</span>
+          <input
+            value={adminIds}
+            onChange={e => setAdminIds(e.target.value)}
+            onBlur={() => adminIds !== group.admin_ids && onSave(adminIds)}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            placeholder="111,222,333"
+            disabled={busy}
+            style={{ width: '100%', marginTop: 4 }}
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+export function AdminPage({ isSuperAdmin, onBack }) {
   const now = new Date();
   const [users, setUsers] = useState([]);
   const [VIRDLAR, setVirdlar] = useState([]);
@@ -255,6 +305,7 @@ export function AdminPage({ onBack }) {
       <div className="admin-tabs">
         <button className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>Foydalanuvchilar</button>
         <button className={tab === 'virdlar' ? 'active' : ''} onClick={() => setTab('virdlar')}>Virdlar</button>
+        {isSuperAdmin && <button className={tab === 'groups' ? 'active' : ''} onClick={() => setTab('groups')}>Guruhlar</button>}
       </div>
 
       {tab === 'users' && (
@@ -267,6 +318,7 @@ export function AdminPage({ onBack }) {
       )}
 
       {tab === 'virdlar' && <VirdlarConfigTab />}
+      {tab === 'groups' && isSuperAdmin && <GroupsTab />}
     </div>
   );
 }
