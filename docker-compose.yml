@@ -1,5 +1,5 @@
 services:
-  peshqadam:
+  virdlar:
     build:
       context: .
       args:

@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let db;
 
 export function initDb() {
-  const path = process.env.DATABASE_PATH || './data/peshqadam.db';
+  const path = process.env.DATABASE_PATH || './data/virdlar.db';
   db = new Database(path);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');

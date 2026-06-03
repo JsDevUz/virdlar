@@ -1,4 +1,4 @@
-# Peshqadam — Kunlik Virdlar Bot
+# Virdlar — Kunlik Virdlar Bot
 
 Qizlar uchun kunlik virdlarni kuzatish Telegram boti va WebApp.
 
@@ -6,7 +6,7 @@ Qizlar uchun kunlik virdlarni kuzatish Telegram boti va WebApp.
 
 1. Clone repo va `.env` yaratish:
 ```bash
-git clone <repo> peshqadam && cd peshqadam
+git clone <repo> virdlar && cd virdlar
 cp .env.example .env
 # .env ni to'ldirish: BOT_TOKEN, ADMIN_IDS, WEBHOOK_SECRET, WEBAPP_URL
 ```
@@ -15,7 +15,7 @@ cp .env.example .env
 ```
 peshqadam.jamm.uz {
   encode gzip zstd
-  reverse_proxy peshqadam:3000
+  reverse_proxy virdlar:3000
 }
 ```
 
@@ -29,4 +29,3 @@ docker network ls | grep caddy_net
 ```bash
 docker compose up -d
 ```
-# peshqadam
