@@ -14,6 +14,14 @@ export function initDb() {
   db.pragma('foreign_keys = ON');
   const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
   db.exec(schema);
+  migrateDb();
+}
+
+function migrateDb() {
+  const cols = getDb().prepare('PRAGMA table_info(groups)').all().map(c => c.name);
+  if (!cols.includes('telegram_group_id')) {
+    getDb().exec('ALTER TABLE groups ADD COLUMN telegram_group_id TEXT');
+  }
 }
 
 export function getDb() {
@@ -39,13 +47,14 @@ export function getAllGroups() {
   return getDb().prepare('SELECT * FROM groups ORDER BY id').all();
 }
 
-export function updateGroup(id, { name, adminIds, isActive }) {
+export function updateGroup(id, { name, adminIds, isActive, telegramGroupId }) {
   const d = getDb();
   const fields = [];
   const params = [];
-  if (name !== undefined)     { fields.push('name = ?');      params.push(name); }
-  if (adminIds !== undefined) { fields.push('admin_ids = ?'); params.push(adminIds); }
-  if (isActive !== undefined) { fields.push('is_active = ?'); params.push(isActive ? 1 : 0); }
+  if (name !== undefined)            { fields.push('name = ?');              params.push(name); }
+  if (adminIds !== undefined)        { fields.push('admin_ids = ?');         params.push(adminIds); }
+  if (isActive !== undefined)        { fields.push('is_active = ?');         params.push(isActive ? 1 : 0); }
+  if (telegramGroupId !== undefined) { fields.push('telegram_group_id = ?'); params.push(telegramGroupId || null); }
   if (!fields.length) return d.prepare('SELECT * FROM groups WHERE id = ?').get(id);
   params.push(id);
   d.prepare(`UPDATE groups SET ${fields.join(', ')} WHERE id = ?`).run(...params);

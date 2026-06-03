@@ -35,6 +35,11 @@ export function startScheduler(bot) {
           await bot.telegram.sendMessage(adminId, report, { parse_mode: 'Markdown' });
         } catch { /* silent */ }
       }
+      if (group.telegram_group_id) {
+        try {
+          await bot.telegram.sendMessage(group.telegram_group_id, report, { parse_mode: 'Markdown' });
+        } catch { /* silent */ }
+      }
     }
   }, { timezone: 'Asia/Tashkent' });
 }

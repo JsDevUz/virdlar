@@ -261,6 +261,7 @@ function GroupsTab() {
   const [busy, setBusy] = useState(false);
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
+  const [newTgGroupId, setNewTgGroupId] = useState('');
   const [creating, setCreating] = useState(false);
 
   const reload = () => api.getGroups().then(setGroups);
@@ -270,17 +271,18 @@ function GroupsTab() {
     if (!newName.trim() || !newSlug.trim()) return;
     setCreating(true);
     try {
-      await api.createGroup({ name: newName.trim(), slug: newSlug.trim() });
+      await api.createGroup({ name: newName.trim(), slug: newSlug.trim(), telegram_group_id: newTgGroupId.trim() || undefined });
       setNewName('');
       setNewSlug('');
+      setNewTgGroupId('');
       await reload();
     } finally { setCreating(false); }
   }
 
-  async function saveAdminIds(id, adminIds) {
+  async function saveGroup(id, patch) {
     setBusy(true);
     try {
-      await api.updateGroup(id, { admin_ids: adminIds });
+      await api.updateGroup(id, patch);
       await reload();
     } finally { setBusy(false); }
   }
@@ -300,13 +302,19 @@ function GroupsTab() {
           onChange={e => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
           disabled={creating}
         />
+        <input
+          placeholder="Telegram guruh ID (masalan: -1001234567890)"
+          value={newTgGroupId}
+          onChange={e => setNewTgGroupId(e.target.value)}
+          disabled={creating}
+        />
         <button onClick={createGroup} disabled={creating || !newName.trim() || !newSlug.trim()}>
           {creating ? '...' : "Guruh qo'shish"}
         </button>
       </div>
       {groups.length === 0 && <p className="hint">Hozircha guruhlar yo'q</p>}
       {groups.map(g => (
-        <GroupRow key={`${g.id}-${g.admin_ids}`} group={g} busy={busy} onSave={adminIds => saveAdminIds(g.id, adminIds)} />
+        <GroupRow key={`${g.id}-${g.admin_ids}-${g.telegram_group_id}`} group={g} busy={busy} onSave={patch => saveGroup(g.id, patch)} />
       ))}
     </div>
   );
@@ -318,6 +326,7 @@ function GroupRow({ group, busy, onSave }) {
   const [adminIdSet, setAdminIdSet] = useState(
     new Set((group.admin_ids || '').split(',').map(Number).filter(Boolean))
   );
+  const [tgGroupId, setTgGroupId] = useState(group.telegram_group_id || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -337,7 +346,7 @@ function GroupRow({ group, busy, onSave }) {
   async function save() {
     setSaving(true);
     try {
-      await onSave([...adminIdSet].join(','));
+      await onSave({ admin_ids: [...adminIdSet].join(','), telegram_group_id: tgGroupId.trim() || null });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
@@ -369,6 +378,16 @@ function GroupRow({ group, busy, onSave }) {
             </label>
           ))}
           {groupUsers.length === 0 && <p className="hint">Hali hech kim qo'shilmagan</p>}
+          <label style={{ display: 'block', marginTop: 12 }}>
+            <span style={{ fontSize: 12, opacity: 0.7 }}>Telegram guruh ID</span>
+            <input
+              value={tgGroupId}
+              onChange={e => setTgGroupId(e.target.value)}
+              placeholder="-1001234567890"
+              disabled={saving || busy}
+              style={{ width: '100%', marginTop: 4 }}
+            />
+          </label>
           <button onClick={save} disabled={saving || busy} style={{ marginTop: 8 }}>
             {saved ? '✅ Saqlandi' : 'Saqlash'}
           </button>

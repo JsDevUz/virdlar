@@ -39,11 +39,12 @@ export function buildGroupsRouter() {
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ error: "Noto'g'ri id" });
     }
-    const { name, admin_ids, is_active } = req.body;
+    const { name, admin_ids, is_active, telegram_group_id } = req.body;
     const updated = updateGroup(id, {
       name: name !== undefined ? String(name).trim() : undefined,
       adminIds: admin_ids !== undefined ? String(admin_ids) : undefined,
       isActive: is_active !== undefined ? Boolean(is_active) : undefined,
+      telegramGroupId: telegram_group_id !== undefined ? String(telegram_group_id).trim() : undefined,
     });
     if (!updated) return res.status(404).json({ error: 'Guruh topilmadi' });
     res.json(updated);
