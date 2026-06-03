@@ -3,7 +3,8 @@ import express from 'express';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { initDb } from '../db/index.js';
-import { requireAuth, requireAdmin } from './auth.js';
+import { requireAuth, requireAdmin, requireSuperAdmin } from './auth.js';
+import { buildGroupsRouter } from './routes/groups.js';
 import { buildVirdlarRouter } from './routes/virdlar.js';
 import { buildAdminRouter } from './routes/admin.js';
 import { createBot } from '../bot/index.js';
@@ -21,6 +22,7 @@ app.use((req, _res, next) => {
 
 const bot = createBot();
 
+app.use('/api/groups',  requireAuth, requireSuperAdmin, buildGroupsRouter());
 app.use('/api/virdlar', requireAuth, buildVirdlarRouter());
 app.use('/api/admin',   requireAuth, requireAdmin, buildAdminRouter());
 
