@@ -38,6 +38,8 @@ export const api = {
   updateVirdConfig: (id, body) => apiFetch(`/api/admin/virdlar-config/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   moveVirdConfig: (id, direction) => apiFetch(`/api/admin/virdlar-config/${id}/move`, { method: 'POST', body: JSON.stringify({ direction }) }),
 
+  updateGroupAdmins: (adminIds) => apiFetch('/api/admin/group-admins', { method: 'PATCH', body: JSON.stringify({ admin_ids: adminIds }) }),
+
   getGroups: () => apiFetch('/api/groups'),
   createGroup: (body) => apiFetch('/api/groups', { method: 'POST', body: JSON.stringify(body) }),
   updateGroup: (id, body) => apiFetch(`/api/groups/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),

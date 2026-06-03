@@ -8,9 +8,6 @@ function UserRow({ user, filter, onUserUpdate, VIRDLAR }) {
   const [customName, setCustomName] = useState(user.custom_name || '');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    setCustomName(user.custom_name || '');
-  }, [user.custom_name]);
 
   useEffect(() => {
     if (!open) return;
@@ -183,7 +180,6 @@ function VirdlarConfigTab() {
 
 function VirdConfigRow({ vird, isFirst, isLast, onRename, onToggleActive, onMove }) {
   const [label, setLabel] = useState(vird.label);
-  useEffect(() => { setLabel(vird.label); }, [vird.label]);
   return (
     <div className={`vird-config-row ${vird.is_active ? '' : 'inactive'}`}>
       <div className="vird-config-order">
@@ -208,6 +204,56 @@ function VirdConfigRow({ vird, isFirst, isLast, onRename, onToggleActive, onMove
   );
 }
 
+function AdminsTab() {
+  const [adminIds, setAdminIds] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    api.getGroups().then(groups => {
+      const slug = new URLSearchParams(window.location.search).get('g');
+      const group = groups.find(g => g.slug === slug);
+      if (group) setAdminIds(group.admin_ids || '');
+      setLoaded(true);
+    });
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await api.updateGroupAdmins(adminIds);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!loaded) return null;
+
+  return (
+    <div className="vird-config-list" style={{ padding: 16 }}>
+      <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 12 }}>
+        Telegram ID larni vergul bilan kiriting. Bot guruh havolasi orqali boshlangan foydalanuvchilarga admin tugmasi ko'rinadi.
+      </p>
+      <label>
+        <span style={{ fontSize: 12, opacity: 0.7 }}>Admin ID lar</span>
+        <input
+          value={adminIds}
+          onChange={e => setAdminIds(e.target.value)}
+          placeholder="111222333,444555666"
+          disabled={saving}
+          style={{ width: '100%', marginTop: 4 }}
+        />
+      </label>
+      <button onClick={save} disabled={saving} style={{ marginTop: 12 }}>
+        {saved ? '✅ Saqlandi' : 'Saqlash'}
+      </button>
+    </div>
+  );
+}
+
 function GroupsTab() {
   const [groups, setGroups] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -227,7 +273,7 @@ function GroupsTab() {
     <div className="vird-config-list">
       {groups.length === 0 && <p className="hint">Guruhlar yo'q</p>}
       {groups.map(g => (
-        <GroupRow key={g.id} group={g} busy={busy} onSave={adminIds => saveAdminIds(g.id, adminIds)} />
+        <GroupRow key={`${g.id}-${g.admin_ids}`} group={g} busy={busy} onSave={adminIds => saveAdminIds(g.id, adminIds)} />
       ))}
     </div>
   );
@@ -235,7 +281,6 @@ function GroupsTab() {
 
 function GroupRow({ group, busy, onSave }) {
   const [adminIds, setAdminIds] = useState(group.admin_ids || '');
-  useEffect(() => { setAdminIds(group.admin_ids || ''); }, [group.admin_ids]);
   return (
     <div className="vird-config-row">
       <div style={{ flex: 1 }}>
@@ -305,6 +350,7 @@ export function AdminPage({ isSuperAdmin, onBack }) {
       <div className="admin-tabs">
         <button className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>Foydalanuvchilar</button>
         <button className={tab === 'virdlar' ? 'active' : ''} onClick={() => setTab('virdlar')}>Virdlar</button>
+        <button className={tab === 'admins' ? 'active' : ''} onClick={() => setTab('admins')}>Adminlar</button>
         {isSuperAdmin && <button className={tab === 'groups' ? 'active' : ''} onClick={() => setTab('groups')}>Guruhlar</button>}
       </div>
 
@@ -318,6 +364,7 @@ export function AdminPage({ isSuperAdmin, onBack }) {
       )}
 
       {tab === 'virdlar' && <VirdlarConfigTab />}
+      {tab === 'admins' && <AdminsTab />}
       {tab === 'groups' && isSuperAdmin && <GroupsTab />}
     </div>
   );

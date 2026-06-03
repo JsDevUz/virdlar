@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllUsers, getVirdlarForAdmin, updateUserAdmin, getVirdlarConfig, addVird, updateVird, moveVird } from '../../db/index.js';
+import { getAllUsers, getVirdlarForAdmin, updateUserAdmin, getVirdlarConfig, addVird, updateVird, moveVird, updateGroup } from '../../db/index.js';
 
 export function buildAdminRouter() {
   const router = Router();
@@ -60,6 +60,16 @@ export function buildAdminRouter() {
       isActive: is_active !== undefined ? Boolean(is_active) : undefined,
     });
     if (!updated) return res.status(404).json({ error: 'Topilmadi' });
+    res.json(updated);
+  });
+
+  router.patch('/group-admins', (req, res) => {
+    const { admin_ids } = req.body;
+    if (typeof admin_ids !== 'string') {
+      return res.status(400).json({ error: "admin_ids kerak (string)" });
+    }
+    const updated = updateGroup(req.groupId, { adminIds: admin_ids });
+    if (!updated) return res.status(404).json({ error: 'Guruh topilmadi' });
     res.json(updated);
   });
 
