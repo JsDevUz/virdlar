@@ -120,6 +120,6 @@ export function registerHandlers(bot, webappUrl) {
     const groupId = Number(ctx.match[1]);
     await ctx.answerCbQuery();
     const report = buildReport(getTodayStr(), groupId);
-    await ctx.reply(report, { parse_mode: 'Markdown' });
+    await ctx.reply(report, { parse_mode: 'MarkdownV2' });
   });
 }

@@ -32,22 +32,26 @@ export function startScheduler(bot) {
       ];
       for (const adminId of [...new Set(adminIds)]) {
         try {
-          await bot.telegram.sendMessage(adminId, report, { parse_mode: 'Markdown' });
+          await bot.telegram.sendMessage(adminId, report, { parse_mode: 'MarkdownV2' });
         } catch { /* silent */ }
       }
       if (group.telegram_group_id) {
         try {
-          await bot.telegram.sendMessage(group.telegram_group_id, report, { parse_mode: 'Markdown' });
+          await bot.telegram.sendMessage(group.telegram_group_id, report, { parse_mode: 'MarkdownV2' });
         } catch { /* silent */ }
       }
     }
   }, { timezone: 'Asia/Tashkent' });
 }
 
+function esc(text) {
+  return String(text ?? '').replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+}
+
 export function buildReport(date, groupId) {
   const [y, m, d] = date.split('-');
   const VIRDLAR = getVirdlarConfig(groupId);
-  const header = `📅 ${d}.${m}.${y}\n\n${VIRDLAR.map(v => v.label).join('\n')}\n\n`;
+  const header = `📅 ${d}\\.${m}\\.${y}\n\n${VIRDLAR.map(v => esc(v.label)).join('\n')}\n\n`;
 
   const users = getAllUsers(groupId).filter(u => !u.is_banned && !u.exclude_from_report);
   const active = [];
@@ -56,7 +60,7 @@ export function buildReport(date, groupId) {
   for (const user of users) {
     const rows = getVirdlarByUserDate(user.id, date);
     const doneKeys = new Set(rows.filter(r => r.status === 'done').map(r => r.vird_key));
-    const name = user.display_name;
+    const name = esc(user.display_name);
     if (doneKeys.size === 0) {
       lazy.push({ name });
     } else {
@@ -70,14 +74,14 @@ export function buildReport(date, groupId) {
 
   let report = header;
   if (active.length) {
-    const rows = active.map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM} — [${u.count}]\n${u.emojis}`).join('\n\n');
+    const rows = active.map((u, i) => `${LRM}${i + 1}\\. ${u.name}${LRM} — \\[${u.count}\\]\n${u.emojis}`).join('\n\n');
     report += rows;
   } else {
-    report += '_(hech kim kiritmadi)_';
+    report += '_hech kim kiritmadi_';
   }
   if (lazy.length) {
-    report += `\n\n😴 *G'aflat doskasi:* [${lazy.length}]\n`;
-    report += lazy.map((u, i) => `${LRM}${i + 1}. ${u.name}${LRM}`).join('\n');
+    report += `\n\n😴 *G'aflat doskasi:* \\[${lazy.length}\\]\n`;
+    report += lazy.map((u, i) => `${LRM}${i + 1}\\. ${u.name}${LRM}`).join('\n');
   }
   return report;
 }
