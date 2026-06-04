@@ -1,5 +1,5 @@
 import { upsertUser, getTodayStr, getGroupBySlug, getAllGroups, getUserGroups } from '../db/index.js';
-import { buildReport } from './scheduler.js';
+import { buildReport, getYesterdayStr } from './scheduler.js';
 
 export function registerHandlers(bot, webappUrl) {
   const superAdminIds = (process.env.SUPER_ADMIN_IDS || '').split(',').map(Number).filter(Boolean);
@@ -74,6 +74,43 @@ export function registerHandlers(bot, webappUrl) {
       `Assalomu Alaykum, ${first_name}! 👋`,
       { reply_markup: { inline_keyboard: keyboard } }
     );
+  });
+
+  bot.command('kecha', async (ctx) => {
+    const userId = ctx.from.id;
+    const isSuperAdmin = superAdminIds.includes(userId);
+
+    // Foydalanuvchining guruhlarini topish
+    const userGroups = getAllGroups().filter(g => {
+      if (!g.is_active) return false;
+      const admins = (g.admin_ids || '').split(',').map(Number).filter(Boolean);
+      return isSuperAdmin || admins.includes(userId);
+    });
+
+    if (userGroups.length === 0) {
+      await ctx.reply('Siz hech qaysi guruhning admini emassiz.');
+      return;
+    }
+
+    const yesterday = getYesterdayStr();
+
+    for (const group of userGroups) {
+      const report = buildReport(yesterday, group.id);
+      const adminIds = [
+        ...(group.admin_ids || '').split(',').map(Number).filter(Boolean),
+        ...superAdminIds,
+      ];
+      for (const adminId of [...new Set(adminIds)]) {
+        try {
+          await ctx.telegram.sendMessage(adminId, report, { parse_mode: 'MarkdownV2' });
+        } catch { /* silent */ }
+      }
+      if (group.telegram_group_id) {
+        try {
+          await ctx.telegram.sendMessage(group.telegram_group_id, report, { parse_mode: 'MarkdownV2' });
+        } catch { /* silent */ }
+      }
+    }
   });
 
   bot.command('link', async (ctx) => {

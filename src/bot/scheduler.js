@@ -44,6 +44,12 @@ export function startScheduler(bot) {
   }, { timezone: 'Asia/Tashkent' });
 }
 
+export function getYesterdayStr() {
+  const d = new Date(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tashkent' }).format(new Date()));
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function esc(text) {
   return String(text ?? '').replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
 }
