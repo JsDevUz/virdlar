@@ -78,23 +78,40 @@ export function registerHandlers(bot, webappUrl) {
 
   bot.command('kecha', async (ctx) => {
     const userId = ctx.from.id;
+    const chatId = ctx.chat.id;
+    const isPrivate = ctx.chat.type === 'private';
     const isSuperAdmin = superAdminIds.includes(userId);
 
-    // Foydalanuvchining guruhlarini topish
-    const userGroups = getAllGroups().filter(g => {
-      if (!g.is_active) return false;
-      const admins = (g.admin_ids || '').split(',').map(Number).filter(Boolean);
-      return isSuperAdmin || admins.includes(userId);
-    });
+    // Guruh chatidan yozilsa — faqat o'sha telegram guruh bilan bog'liq loyiha
+    // Private chatdan yozilsa — foydalanuvchi admin bo'lgan guruhlar
+    let targetGroups;
+    if (!isPrivate) {
+      targetGroups = getAllGroups().filter(g => {
+        if (!g.is_active) return false;
+        if (String(g.telegram_group_id) !== String(chatId)) return false;
+        const admins = (g.admin_ids || '').split(',').map(Number).filter(Boolean);
+        return isSuperAdmin || admins.includes(userId);
+      });
+    } else {
+      targetGroups = getAllGroups().filter(g => {
+        if (!g.is_active) return false;
+        const admins = (g.admin_ids || '').split(',').map(Number).filter(Boolean);
+        return admins.includes(userId);
+      });
+      if (isSuperAdmin && targetGroups.length === 0) {
+        await ctx.reply('Super-admin uchun guruh chatidan /kecha yuboring.');
+        return;
+      }
+    }
 
-    if (userGroups.length === 0) {
-      await ctx.reply('Siz hech qaysi guruhning admini emassiz.');
+    if (targetGroups.length === 0) {
+      await ctx.reply('Siz bu guruhning admini emassiz.');
       return;
     }
 
     const yesterday = getYesterdayStr();
 
-    for (const group of userGroups) {
+    for (const group of targetGroups) {
       const report = buildReport(yesterday, group.id);
       const adminIds = [
         ...(group.admin_ids || '').split(',').map(Number).filter(Boolean),
